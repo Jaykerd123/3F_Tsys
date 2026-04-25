@@ -111,7 +111,7 @@ export async function fetchUserProfile(uid) {
 }
 
 export async function updateUserProfile(uid, data) {
-  return updateDoc(doc(usersCol, uid), data)
+  return setDoc(doc(usersCol, uid), data, { merge: true })
 }
 
 export async function createTimeLog(uid, userName, timeIn = new Date().toISOString()) {

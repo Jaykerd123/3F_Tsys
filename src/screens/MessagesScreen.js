@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Modal, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { subscribeMessages, sendMessage } from '../../services/firebase'
+import { subscribeMessages, sendMessage, fetchUsers } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MessagesScreen({ user, profile, theme = 'light' }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
+  const [membersVisible, setMembersVisible] = useState(false)
+  const [members, setMembers] = useState([])
+  const [membersLoading, setMembersLoading] = useState(true)
   const flatListRef = useRef(null)
   const isDark = theme === 'dark'
   const colors = {
@@ -28,6 +31,26 @@ export default function MessagesScreen({ user, profile, theme = 'light' }) {
   useEffect(() => {
     const unsubscribe = subscribeMessages(setMessages)
     return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    const loadMembers = async () => {
+      try {
+        const users = await fetchUsers()
+        if (active) {
+          setMembers(users)
+        }
+      } catch (error) {
+        console.error('[Messages] Failed to load members:', error.message)
+      } finally {
+        if (active) setMembersLoading(false)
+      }
+    }
+    loadMembers()
+    return () => {
+      active = false
+    }
   }, [])
 
   const handleSend = async () => {
@@ -78,10 +101,11 @@ export default function MessagesScreen({ user, profile, theme = 'light' }) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
       <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}> 
-        <Text style={[styles.title, { color: colors.text }]}>Group Chat</Text>
-        <View style={[styles.badge, { backgroundColor: isDark ? '#0f3a6f' : '#E8F2FF' }]}> 
-          <Text style={[styles.badgeText, { color: isDark ? '#D6E7FF' : '#007AFF' }]}>Team</Text>
-        </View>
+        <Text style={[styles.title, { color: colors.text }]}>3F Chat</Text>
+        <Pressable style={[styles.membersButton, { backgroundColor: isDark ? '#0f3a6f' : '#E8F2FF' }]} onPress={() => setMembersVisible(true)}> 
+          <MaterialCommunityIcons name="account-group" size={18} color={isDark ? '#D6E7FF' : '#007AFF'} />
+          <Text style={[styles.membersButtonText, { color: isDark ? '#D6E7FF' : '#007AFF' }]}>Members</Text>
+        </Pressable>
       </View>
       
       <FlatList
@@ -117,6 +141,40 @@ export default function MessagesScreen({ user, profile, theme = 'light' }) {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      <Modal visible={membersVisible} animationType="slide" transparent>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalContent, { backgroundColor: colors.header, borderColor: colors.border }]}> 
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Group Members</Text>
+              <Pressable onPress={() => setMembersVisible(false)} style={styles.modalCloseButton}>
+                <MaterialCommunityIcons name="close" size={22} color={colors.text} />
+              </Pressable>
+            </View>
+            <View style={styles.modalBody}>
+              {membersLoading ? (
+                <ActivityIndicator size="large" color={colors.text} />
+              ) : (
+                <ScrollView contentContainerStyle={styles.modalList}>
+                  {members.length ? members.map(member => (
+                    <View key={member.id} style={[styles.memberRow, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                      <View style={[styles.memberAvatar, { backgroundColor: isDark ? '#23304a' : '#E8F2FF' }]}> 
+                        <Text style={[styles.memberAvatarText, { color: isDark ? '#fff' : '#007AFF' }]}>{member.name ? member.name[0].toUpperCase() : '?'}</Text>
+                      </View>
+                      <View style={styles.memberInfo}>
+                        <Text style={[styles.memberName, { color: colors.text }]}>{member.name || member.email}</Text>
+                        <Text style={[styles.memberRole, { color: colors.secondary }]}>{member.role ? `${member.role.charAt(0).toUpperCase() + member.role.slice(1)}` : 'Worker'}</Text>
+                      </View>
+                    </View>
+                  )) : (
+                    <Text style={[styles.emptyText, { color: colors.secondary }]}>No members found.</Text>
+                  )}
+                </ScrollView>
+              )}
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -151,6 +209,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
+  },
+  membersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+  },
+  membersButtonText: {
+    fontSize: 13,
+    fontWeight: '700',
+    marginLeft: 6,
   },
   listContent: {
     padding: 16,
@@ -283,5 +353,67 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#ccc',
+  },  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
   },
-})
+  modalContent: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    borderWidth: 1,
+    minHeight: '40%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  modalCloseButton: {
+    padding: 6,
+  },
+  modalBody: {
+    flex: 1,
+  },
+  modalList: {
+    paddingBottom: 30,
+  },
+  memberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: 12,
+  },
+  memberAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  memberAvatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  memberInfo: {
+    flex: 1,
+  },
+  memberName: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  memberRole: {
+    fontSize: 13,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },})

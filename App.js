@@ -18,7 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
 
-function AppTabs({ user, profile, theme, onThemeChange }) {
+function AppTabs({ user, profile, theme, onThemeChange, onProfileUpdate }) {
   if (!profile) {
     return (
       <View style={styles.center}>
@@ -63,7 +63,7 @@ function AppTabs({ user, profile, theme, onThemeChange }) {
           {props => <MessagesScreen {...props} user={user} profile={profile} theme={theme} />}
         </Tab.Screen>
         <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-          {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} />}
+          {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} onProfileUpdate={onProfileUpdate} />}
         </Tab.Screen>
       </Tab.Navigator>
     )
@@ -98,7 +98,7 @@ function AppTabs({ user, profile, theme, onThemeChange }) {
         {props => <MessagesScreen {...props} user={user} profile={profile} theme={theme} />}
       </Tab.Screen>
       <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-        {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} />}
+        {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} onProfileUpdate={onProfileUpdate} />}
       </Tab.Screen>
     </Tab.Navigator>
   )
@@ -132,6 +132,18 @@ export default function App() {
     } catch (e) {
       console.warn('[Theme] Failed to save theme preference:', e.message)
     }
+  }
+
+  const handleProfileUpdate = async updatedFields => {
+    setProfile(prev => {
+      const nextProfile = { ...prev, ...updatedFields }
+      if (user?.uid) {
+        AsyncStorage.setItem(`profile_${user.uid}`, JSON.stringify(nextProfile)).catch(err => {
+          console.warn('[Profile] Failed to cache updated profile:', err.message)
+        })
+      }
+      return nextProfile
+    })
   }
 
   useEffect(() => {
@@ -196,7 +208,7 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer theme={DefaultTheme}>
         {user ? (
-          <AppTabs user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} />
+          <AppTabs user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} onProfileUpdate={handleProfileUpdate} />
         ) : (
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />

@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout, updateUserProfile, subscribeUserLogs, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
-export default function ProfileScreen({ user, profile, theme = 'light', onThemeChange }) {
+export default function ProfileScreen({ user, profile, theme = 'light', onThemeChange, onProfileUpdate }) {
   const [name, setName] = useState(profile?.name || '')
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
@@ -65,6 +65,9 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
     try {
       setLoading(true)
       await updateUserProfile(user.uid, { name: name.trim() })
+      if (typeof onProfileUpdate === 'function') {
+        onProfileUpdate({ name: name.trim() })
+      }
       Alert.alert('Success', 'Your profile has been updated.')
     } catch (error) {
       Alert.alert('Update failed', error.message)
@@ -108,6 +111,8 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
       <FlatList
         data={logs}
         keyExtractor={item => item.id}
+        keyboardShouldPersistTaps="always"
+        keyboardDismissMode="on-drag"
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={() => (
           <>
@@ -133,6 +138,8 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
                       onChangeText={setName} 
                       placeholder="Enter your name"
                       placeholderTextColor={colors.secondary}
+                      blurOnSubmit={false}
+                      returnKeyType="done"
                     />
                   </View>
                 </View>
