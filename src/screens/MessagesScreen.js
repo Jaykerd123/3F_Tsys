@@ -4,10 +4,26 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { subscribeMessages, sendMessage } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
-export default function MessagesScreen({ user, profile }) {
+export default function MessagesScreen({ user, profile, theme = 'light' }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
   const flatListRef = useRef(null)
+  const isDark = theme === 'dark'
+  const colors = {
+    background: isDark ? '#121212' : '#fff',
+    header: isDark ? '#1e1e1e' : '#fff',
+    border: isDark ? '#2a2a2a' : '#eee',
+    text: isDark ? '#fff' : '#1a1a1a',
+    secondary: isDark ? '#ccc' : '#666',
+    card: isDark ? '#1f1f1f' : '#f1f3f5',
+    bubbleMe: isDark ? '#2a4d79' : '#007AFF',
+    bubbleThem: isDark ? '#1f1f1f' : '#f1f3f5',
+    bubbleTextThem: isDark ? '#fff' : '#1a1a1a',
+    inputBg: isDark ? '#1e1e1e' : '#fff',
+    inputBorder: isDark ? '#2a2a2a' : '#eee',
+    placeholder: isDark ? '#999' : '#999',
+    footer: isDark ? '#1e1e1e' : '#fff',
+  }
 
   useEffect(() => {
     const unsubscribe = subscribeMessages(setMessages)
@@ -31,10 +47,10 @@ export default function MessagesScreen({ user, profile }) {
 
     if (isSystem) {
       return (
-        <View style={styles.systemMessageContainer}>
-          <View style={styles.systemMessageLine} />
-          <Text style={styles.systemMessageText}>{item.text}</Text>
-          <View style={styles.systemMessageLine} />
+        <View style={[styles.systemMessageContainer, { opacity: isDark ? 0.7 : 1 }]}> 
+          <View style={[styles.systemMessageLine, { backgroundColor: colors.border }]} />
+          <Text style={[styles.systemMessageText, { color: colors.secondary }]}>{item.text}</Text>
+          <View style={[styles.systemMessageLine, { backgroundColor: colors.border }]} />
         </View>
       )
     }
@@ -42,16 +58,16 @@ export default function MessagesScreen({ user, profile }) {
     return (
       <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
         {!isMe && (
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{item.userName ? item.userName[0].toUpperCase() : '?'}</Text>
+          <View style={[styles.avatar, { backgroundColor: isDark ? '#232323' : '#f1f3f5', borderColor: isDark ? '#2a2a2a' : '#eee' }]}> 
+            <Text style={[styles.avatarText, { color: isDark ? '#ddd' : '#666' }]}>{item.userName ? item.userName[0].toUpperCase() : '?'}</Text>
           </View>
         )}
-        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
-          {!isMe && <Text style={styles.userName}>{item.userName}</Text>}
-          <Text style={[styles.messageText, isMe ? styles.myMessageText : styles.theirMessageText]}>
+        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, { backgroundColor: isMe ? colors.bubbleMe : colors.bubbleThem }]}> 
+          {!isMe && <Text style={[styles.userName, { color: isDark ? '#ccc' : '#666' }]}>{item.userName}</Text>}
+          <Text style={[styles.messageText, isMe ? styles.myMessageText : { color: colors.bubbleTextThem }]}> 
             {item.text}
           </Text>
-          <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp]}>
+          <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp, !isMe && { color: isDark ? '#bbb' : '#999' }]}> 
             {new Date(item.createdAt?.seconds ? item.createdAt.seconds * 1000 : new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
@@ -60,11 +76,11 @@ export default function MessagesScreen({ user, profile }) {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Group Chat</Text>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>Team</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
+      <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}> 
+        <Text style={[styles.title, { color: colors.text }]}>Group Chat</Text>
+        <View style={[styles.badge, { backgroundColor: isDark ? '#0f3a6f' : '#E8F2FF' }]}> 
+          <Text style={[styles.badgeText, { color: isDark ? '#D6E7FF' : '#007AFF' }]}>Team</Text>
         </View>
       </View>
       
@@ -81,15 +97,15 @@ export default function MessagesScreen({ user, profile }) {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <View style={styles.inputContainer}>
-          <View style={styles.inputWrapper}>
+        <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
+          <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}> 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { color: colors.text }]}
               placeholder="Type a message..."
               value={draft}
               onChangeText={setDraft}
               multiline
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.placeholder}
             />
             <Pressable 
               style={[styles.sendButton, !draft.trim() && styles.sendButtonDisabled]} 

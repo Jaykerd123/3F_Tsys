@@ -126,7 +126,7 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
                 <View style={styles.inputGroup}>
                   <Text style={[styles.label, { color: colors.secondary }]}>Full Name</Text>
                   <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}> 
-                    <MaterialCommunityIcons name="account-outline" size={20} color={colors.highlight} />
+                    <MaterialCommunityIcons name="account-outline" size={20} color={colors.roleText} />
                     <TextInput 
                       style={[styles.input, { color: colors.text }]} 
                       value={name} 

@@ -4,9 +4,22 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { subscribeAllLogs } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
-export default function AdminDashboardScreen() {
+export default function AdminDashboardScreen({ theme = 'light' }) {
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(true)
+  const isDark = theme === 'dark'
+  const colors = {
+    background: isDark ? '#121212' : '#f8f9fa',
+    card: isDark ? '#1f1f1f' : '#fff',
+    border: isDark ? '#2a2a2a' : '#eee',
+    text: isDark ? '#fff' : '#1a1a1a',
+    secondary: isDark ? '#ccc' : '#666',
+    badgeBg: isDark ? '#0f3c74' : '#007AFF',
+    avatarBg: isDark ? '#16212d' : '#F0F7FF',
+    badgeText: '#fff',
+    empty: isDark ? '#888' : '#ccc',
+    divider: isDark ? '#2a2a2a' : '#eee',
+  }
 
   useEffect(() => {
     const unsubscribe = subscribeAllLogs(data => {
@@ -19,12 +32,12 @@ export default function AdminDashboardScreen() {
   const activeWorkersCount = logs.filter(log => !log.timeOut).length
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View style={[styles.header, { borderBottomColor: colors.divider }]}> 
       <View>
-        <Text style={styles.title}>Admin Panel</Text>
-        <Text style={styles.subtitle}>System Overview</Text>
+        <Text style={[styles.title, { color: colors.text }]}>Admin Panel</Text>
+        <Text style={[styles.subtitle, { color: colors.secondary }]}>System Overview</Text>
       </View>
-      <View style={styles.statsCard}>
+      <View style={[styles.statsCard, { backgroundColor: colors.badgeBg }]}> 
         <Text style={styles.statsCount}>{activeWorkersCount}</Text>
         <Text style={styles.statsLabel}>Active Now</Text>
       </View>
@@ -32,23 +45,23 @@ export default function AdminDashboardScreen() {
   )
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
       <FlatList
         data={logs}
         keyExtractor={item => item.id}
         ListHeaderComponent={renderHeader}
         renderItem={({ item }) => (
-          <View style={styles.logCard}>
+          <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
             <View style={styles.logHeader}>
               <View style={styles.userContainer}>
                 <View style={styles.avatar}>
                   <Text style={styles.avatarText}>{item.userName ? item.userName[0].toUpperCase() : '?'}</Text>
                 </View>
                 <View>
-                  <Text style={styles.userName}>{item.userName || 'Unknown'}</Text>
-                  <View style={styles.statusBadge}>
+                  <Text style={[styles.userName, { color: colors.text }]}>{item.userName || 'Unknown'}</Text>
+                  <View style={[styles.statusBadge, { backgroundColor: colors.section, borderColor: colors.border }]}> 
                     <View style={[styles.statusDot, { backgroundColor: item.timeOut ? '#8E8E93' : '#4CD964' }]} />
-                    <Text style={styles.statusText}>{item.timeOut ? 'Completed' : 'Working Now'}</Text>
+                    <Text style={[styles.statusText, { color: colors.secondary }]}>{item.timeOut ? 'Completed' : 'Working Now'}</Text>
                   </View>
                 </View>
               </View>
@@ -57,12 +70,12 @@ export default function AdminDashboardScreen() {
               </View>
             </View>
 
-            <View style={styles.timeDetails}>
+            <View style={[styles.timeDetails, { backgroundColor: colors.section, borderColor: colors.border }]}> 
               <View style={styles.timeBlock}>
-                <MaterialCommunityIcons name="clock-in" size={16} color="#007AFF" />
+                <MaterialCommunityIcons name="clock-in" size={16} color={theme === 'dark' ? '#4dabf7' : '#007AFF'} />
                 <View style={styles.timeTextContent}>
-                  <Text style={styles.timeLabel}>Started</Text>
-                  <Text style={styles.timeValue}>
+                  <Text style={[styles.timeLabel, { color: colors.secondary }]}>Started</Text>
+                  <Text style={[styles.timeValue, { color: colors.text }]}> 
                     {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </Text>
                 </View>
@@ -71,8 +84,8 @@ export default function AdminDashboardScreen() {
               <View style={styles.timeBlock}>
                 <MaterialCommunityIcons name="clock-out" size={16} color="#FF3B30" />
                 <View style={styles.timeTextContent}>
-                  <Text style={styles.timeLabel}>Ended</Text>
-                  <Text style={styles.timeValue}>
+                  <Text style={[styles.timeLabel, { color: colors.secondary }]}>Ended</Text>
+                  <Text style={[styles.timeValue, { color: colors.text }]}> 
                     {item.timeOut 
                       ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                       : '---'}
@@ -94,8 +107,8 @@ export default function AdminDashboardScreen() {
             <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 40 }} />
           ) : (
             <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="history" size={60} color="#ccc" />
-              <Text style={styles.emptyText}>No logs found.</Text>
+              <MaterialCommunityIcons name="history" size={60} color={colors.empty} />
+              <Text style={[styles.emptyText, { color: colors.secondary }]}>No logs found.</Text>
             </View>
           )
         }

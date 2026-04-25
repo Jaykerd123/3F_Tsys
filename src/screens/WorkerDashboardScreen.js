@@ -4,12 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { subscribeUserLogs, createTimeLog, updateTimeLog, sendSystemMessage, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
-export default function WorkerDashboardScreen({ user, profile }) {
+export default function WorkerDashboardScreen({ user, profile, theme = 'light' }) {
   const [logs, setLogs] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [editTimeIn, setEditTimeIn] = useState('')
   const [editTimeOut, setEditTimeOut] = useState('')
   const [loading, setLoading] = useState(false)
+  const isDark = theme === 'dark'
+  const colors = {
+    background: isDark ? '#121212' : '#f8f9fa',
+    card: isDark ? '#1f1f1f' : '#fff',
+    section: isDark ? '#181818' : '#fff',
+    border: isDark ? '#2a2a2a' : '#eee',
+    text: isDark ? '#fff' : '#1a1a1a',
+    secondary: isDark ? '#ccc' : '#666',
+    placeholder: isDark ? '#999' : '#999',
+    input: isDark ? '#171717' : '#fff',
+    actionBg: isDark ? '#0d3d7a' : '#007AFF',
+    disabledBg: isDark ? '#2a2a2a' : '#f1f3f5',
+  }
 
   useEffect(() => {
     const unsubscribe = subscribeUserLogs(user.uid, setLogs)
@@ -73,21 +86,21 @@ export default function WorkerDashboardScreen({ user, profile }) {
   }
 
   const renderHeader = () => (
-    <View style={styles.header}>
+    <View style={[styles.header, { borderBottomColor: colors.border }]}> 
       <View>
-        <Text style={styles.greeting}>Welcome back,</Text>
-        <Text style={styles.userName}>{profile.name || 'Worker'}</Text>
+        <Text style={[styles.greeting, { color: colors.secondary }]}>Welcome back,</Text>
+        <Text style={[styles.userName, { color: colors.text }]}>{profile.name || 'Worker'}</Text>
       </View>
-      <View style={styles.statusBadge}>
+      <View style={[styles.statusBadge, { backgroundColor: colors.card, borderColor: colors.border }]}> 
         <View style={[styles.statusDot, { backgroundColor: activeLog ? '#4CD964' : '#FF3B30' }]} />
-        <Text style={styles.statusText}>{activeLog ? 'On Clock' : 'Off Clock'}</Text>
+        <Text style={[styles.statusText, { color: colors.secondary }]}>{activeLog ? 'On Clock' : 'Off Clock'}</Text>
       </View>
     </View>
   )
 
   const renderActiveSession = () => (
-    <View style={styles.actionCard}>
-      <Text style={styles.cardTitle}>{activeLog ? 'Active Session' : 'Start Working'}</Text>
+    <View style={[styles.actionCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+      <Text style={[styles.cardTitle, { color: colors.text }]}>{activeLog ? 'Active Session' : 'Start Working'}</Text>
       {activeLog && (
         <View style={styles.timerContainer}>
           <MaterialCommunityIcons name="clock-outline" size={24} color="#007AFF" />
@@ -123,7 +136,7 @@ export default function WorkerDashboardScreen({ user, profile }) {
   )
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
       <FlatList
         data={logs}
         keyExtractor={item => item.id}
@@ -131,15 +144,15 @@ export default function WorkerDashboardScreen({ user, profile }) {
           <>
             {renderHeader()}
             {renderActiveSession()}
-            <Text style={styles.sectionTitle}>Recent History</Text>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>Recent History</Text>
           </>
         )}
         renderItem={({ item }) => (
-          <View style={styles.logCard}>
+          <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
             <View style={styles.logHeader}>
               <View style={styles.logDateContainer}>
                 <MaterialCommunityIcons name="calendar-range" size={20} color="#666" />
-                <Text style={styles.logDate}>
+                <Text style={[styles.logDate, { color: colors.text }]}>
                   {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                 </Text>
               </View>
@@ -148,17 +161,17 @@ export default function WorkerDashboardScreen({ user, profile }) {
               </View>
             </View>
 
-            <View style={styles.logTimes}>
+            <View style={[styles.logTimes, { backgroundColor: colors.section, borderColor: colors.border }]}> 
               <View style={styles.timeInfo}>
-                <Text style={styles.timeLabel}>Started</Text>
-                <Text style={styles.timeValue}>
+                <Text style={[styles.timeLabel, { color: colors.secondary }]}>Started</Text>
+                <Text style={[styles.timeValue, { color: colors.text }]}> 
                   {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </Text>
               </View>
               <View style={styles.timeDivider} />
               <View style={styles.timeInfo}>
-                <Text style={styles.timeLabel}>Ended</Text>
-                <Text style={styles.timeValue}>
+                <Text style={[styles.timeLabel, { color: colors.secondary }]}>Ended</Text>
+                <Text style={[styles.timeValue, { color: colors.text }]}> 
                   {item.timeOut 
                     ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                     : 'Active'}
@@ -167,18 +180,20 @@ export default function WorkerDashboardScreen({ user, profile }) {
             </View>
 
             {editingId === item.id ? (
-              <View style={styles.editSection}>
+              <View style={[styles.editSection, { backgroundColor: colors.section, borderColor: colors.border }]}> 
                 <TextInput
-                  style={styles.editInput}
+                  style={[styles.editInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
                   value={editTimeIn}
                   onChangeText={setEditTimeIn}
                   placeholder="In: YYYY-MM-DDTHH:MM:SS"
+                  placeholderTextColor={colors.placeholder}
                 />
                 <TextInput
-                  style={styles.editInput}
+                  style={[styles.editInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
                   value={editTimeOut}
                   onChangeText={setEditTimeOut}
                   placeholder="Out: YYYY-MM-DDTHH:MM:SS"
+                  placeholderTextColor={colors.placeholder}
                 />
                 <View style={styles.editActions}>
                   <Pressable style={[styles.editBtn, styles.saveBtn]} onPress={saveEdit}>
@@ -203,8 +218,8 @@ export default function WorkerDashboardScreen({ user, profile }) {
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="clipboard-text-outline" size={60} color="#ccc" />
-            <Text style={styles.emptyText}>No sessions recorded yet.</Text>
+            <MaterialCommunityIcons name="clipboard-text-outline" size={60} color={isDark ? '#555' : '#ccc'} />
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No sessions recorded yet.</Text>
           </View>
         }
         contentContainerStyle={styles.listContent}

@@ -6,12 +6,26 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 import DateTimePickerModal from "react-native-modal-datetime-picker"
 
-export default function CalculationScreen() {
+export default function CalculationScreen({ theme = 'light' }) {
   const [users, setUsers] = useState([])
   const [selectedUser, setSelectedUser] = useState(null)
   const [hourlyRate, setHourlyRate] = useState('20')
   const [results, setResults] = useState(null)
   const [calculating, setCalculating] = useState(false)
+  const isDark = theme === 'dark'
+  const colors = {
+    background: isDark ? '#121212' : '#f8f9fa',
+    header: isDark ? '#1e1e1e' : '#fff',
+    text: isDark ? '#fff' : '#1a1a1a',
+    secondary: isDark ? '#ccc' : '#666',
+    card: isDark ? '#1f1f1f' : '#fff',
+    border: isDark ? '#2a2a2a' : '#eee',
+    avatarBg: isDark ? '#232323' : '#F0F7FF',
+    rateInput: isDark ? '#1e1e1e' : '#fff',
+    modal: isDark ? '#181818' : '#fff',
+    modalOverlay: isDark ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.5)',
+    placeholder: isDark ? '#999' : '#999',
+  }
   
   // Date Picker States
   const [startDate, setStartDate] = useState(new Date())
@@ -83,24 +97,24 @@ export default function CalculationScreen() {
   }
 
   const renderWorkerItem = ({ item }) => (
-    <Pressable style={styles.workerCard} onPress={() => handleSelectUser(item)}>
-      <View style={styles.workerAvatar}>
-        <Text style={styles.avatarText}>{item.name ? item.name[0].toUpperCase() : '?'}</Text>
+    <Pressable style={[styles.workerCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handleSelectUser(item)}>
+      <View style={[styles.workerAvatar, { backgroundColor: colors.avatarBg }]}> 
+        <Text style={[styles.avatarText, { color: colors.text }]}>{item.name ? item.name[0].toUpperCase() : '?'}</Text>
       </View>
       <View style={styles.workerInfo}>
-        <Text style={styles.workerName}>{item.name}</Text>
-        <Text style={styles.workerEmail}>{item.email}</Text>
+        <Text style={[styles.workerName, { color: colors.text }]}>{item.name}</Text>
+        <Text style={[styles.workerEmail, { color: colors.secondary }]}>{item.email}</Text>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={24} color="#ccc" />
+      <MaterialCommunityIcons name="chevron-right" size={24} color={colors.secondary} />
     </Pressable>
   )
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
+      <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}> 
         <View>
-          <Text style={styles.title}>Payroll</Text>
-          <Text style={styles.subtitle}>Select a worker to compute</Text>
+          <Text style={[styles.title, { color: colors.text }]}>Payroll</Text>
+          <Text style={[styles.subtitle, { color: colors.secondary }]}>Select a worker to compute</Text>
         </View>
         <Pressable style={styles.refreshBtn} onPress={loadUsers}>
           <MaterialCommunityIcons name="refresh" size={24} color="#007AFF" />
@@ -114,8 +128,8 @@ export default function CalculationScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <MaterialCommunityIcons name="account-group-outline" size={60} color="#ccc" />
-            <Text style={styles.emptyText}>No workers found.</Text>
+            <MaterialCommunityIcons name="account-group-outline" size={60} color={colors.secondary} />
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No workers found.</Text>
           </View>
         }
       />
@@ -127,26 +141,26 @@ export default function CalculationScreen() {
         transparent={true}
         onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+        <View style={[styles.modalOverlay, { backgroundColor: colors.modalOverlay }]}> 
+          <View style={[styles.modalContent, { backgroundColor: colors.modal }]}> 
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Compute Payroll</Text>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Compute Payroll</Text>
               <Pressable onPress={() => setModalVisible(false)}>
-                <MaterialCommunityIcons name="close" size={24} color="#666" />
+                <MaterialCommunityIcons name="close" size={24} color={colors.secondary} />
               </Pressable>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.selectedWorkerHeader}>
-                <View style={styles.smallAvatar}>
-                  <Text style={styles.smallAvatarText}>{selectedUser?.name?.[0].toUpperCase()}</Text>
+              <View style={[styles.selectedWorkerHeader, { backgroundColor: colors.card }]}> 
+                <View style={[styles.smallAvatar, { backgroundColor: colors.avatarBg }]}> 
+                  <Text style={[styles.smallAvatarText, { color: colors.text }]}>{selectedUser?.name?.[0].toUpperCase()}</Text>
                 </View>
-                <Text style={styles.selectedWorkerName}>{selectedUser?.name}</Text>
+                <Text style={[styles.selectedWorkerName, { color: colors.text }]}>{selectedUser?.name}</Text>
               </View>
 
-              <Text style={styles.inputLabel}>Select Date Range</Text>
+              <Text style={[styles.inputLabel, { color: colors.secondary }]}>Select Date Range</Text>
               <View style={styles.dateRow}>
-                <Pressable style={styles.dateInput} onPress={() => setStartPickerVisibility(true)}>
+                <Pressable style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setStartPickerVisibility(true)}>
                   <MaterialCommunityIcons name="calendar-import" size={20} color="#007AFF" />
                   <View style={styles.dateTextWrapper}>
                     <Text style={styles.dateLabel}>From</Text>
@@ -154,7 +168,7 @@ export default function CalculationScreen() {
                   </View>
                 </Pressable>
 
-                <Pressable style={styles.dateInput} onPress={() => setEndPickerVisibility(true)}>
+                <Pressable style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setEndPickerVisibility(true)}>
                   <MaterialCommunityIcons name="calendar-export" size={20} color="#FF3B30" />
                   <View style={styles.dateTextWrapper}>
                     <Text style={styles.dateLabel}>To</Text>
@@ -163,15 +177,16 @@ export default function CalculationScreen() {
                 </Pressable>
               </View>
 
-              <Text style={styles.inputLabel}>Hourly Rate (₱)</Text>
+              <Text style={[styles.inputLabel, { color: colors.secondary }]}>Hourly Rate (₱)</Text>
               <View style={styles.rateInputWrapper}>
-                <Text style={styles.rateSymbol}>₱</Text>
+                <Text style={[styles.rateSymbol, { color: colors.secondary }]}>₱</Text>
                 <TextInput
-                  style={styles.rateInput}
+                  style={[styles.rateInput, { backgroundColor: colors.rateInput, color: colors.text, borderColor: colors.border }]}
                   keyboardType="numeric"
                   value={hourlyRate}
                   onChangeText={setHourlyRate}
                   placeholder="0.00"
+                  placeholderTextColor={colors.placeholder}
                 />
               </View>
 

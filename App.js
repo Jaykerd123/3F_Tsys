@@ -54,13 +54,13 @@ function AppTabs({ user, profile, theme, onThemeChange }) {
         tabBarStyle: { backgroundColor: tabBarBg },
       })}>
         <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-          {props => <AdminDashboardScreen {...props} user={user} />}
+          {props => <AdminDashboardScreen {...props} user={user} theme={theme} />}
         </Tab.Screen>
         <Tab.Screen name="Calculation" options={{ title: 'Calculation' }}>
-          {props => <CalculationScreen {...props} user={user} />}
+          {props => <CalculationScreen {...props} user={user} theme={theme} />}
         </Tab.Screen>
         <Tab.Screen name="Messages" options={{ title: 'Messages' }}>
-          {props => <MessagesScreen {...props} user={user} profile={profile} />}
+          {props => <MessagesScreen {...props} user={user} profile={profile} theme={theme} />}
         </Tab.Screen>
         <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
           {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} />}
@@ -92,10 +92,10 @@ function AppTabs({ user, profile, theme, onThemeChange }) {
       tabBarStyle: { backgroundColor: tabBarBg },
     })}>
       <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-        {props => <WorkerDashboardScreen {...props} user={user} profile={profile} />}
+        {props => <WorkerDashboardScreen {...props} user={user} profile={profile} theme={theme} />}
       </Tab.Screen>
       <Tab.Screen name="Messages" options={{ title: 'Messages' }}>
-        {props => <MessagesScreen {...props} user={user} profile={profile} />}
+        {props => <MessagesScreen {...props} user={user} profile={profile} theme={theme} />}
       </Tab.Screen>
       <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
         {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} />}
