@@ -9,7 +9,7 @@ import {
 } from 'firebase/auth'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
-  getFirestore,
+  initializeFirestore,
   collection,
   doc,
   setDoc,
@@ -24,9 +24,7 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
-  initializeFirestore,
-  persistentLocalCache,
-  persistentMultipleTabManager
+  enableNetwork,
 } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -39,10 +37,28 @@ const firebaseConfig = {
 }
 
 const app = initializeApp(firebaseConfig)
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage)
+
+// Fix for "auth/already-initialized" error
+let auth;
+try {
+  auth = getAuth(app);
+} catch (e) {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage)
+  });
+}
+
+// Fix for Expo "Offline" issue: Force long-polling and disable fetch streams
+const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+  useFetchStreams: false,
 })
-const db = getFirestore(app)
+
+// Force network to be enabled immediately
+enableNetwork(db)
+  .then(() => console.log("[Firestore] Network enabled manually"))
+  .catch(err => console.error("[Firestore] Network enable error:", err));
+
 const usersCol = collection(db, 'users')
 const logsCol = collection(db, 'timeLogs')
 const messagesCol = collection(db, 'messages')
@@ -108,32 +124,61 @@ export async function deleteTimeLog(logId) {
 }
 
 export function subscribeUserLogs(uid, callback) {
-  const logsQuery = query(logsCol, where('userId', '==', uid), orderBy('createdAt', 'desc'))
+  // Removed server-side orderBy to avoid complex index requirements
+  const logsQuery = query(logsCol, where('userId', '==', uid))
   return onSnapshot(logsQuery, snapshot => {
     const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    // Sort locally by createdAt desc
+    docs.sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0
+      const dateB = b.createdAt?.seconds || 0
+      return dateB - dateA
+    })
     callback(docs)
   })
 }
 
 export function subscribeAllLogs(callback) {
-  const logsQuery = query(logsCol, orderBy('createdAt', 'desc'))
+  const logsQuery = query(logsCol)
   return onSnapshot(logsQuery, snapshot => {
     const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    // Sort locally by createdAt desc
+    docs.sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0
+      const dateB = b.createdAt?.seconds || 0
+      return dateB - dateA
+    })
+    callback(docs)
+  })
+}
+
+export function subscribeMessages(callback) {
+  const messagesQuery = query(messagesCol)
+  return onSnapshot(messagesQuery, snapshot => {
+    const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    // Sort locally by createdAt asc
+    docs.sort((a, b) => {
+      const dateA = a.createdAt?.seconds || 0
+      const dateB = b.createdAt?.seconds || 0
+      return dateA - dateB
+    })
     callback(docs)
   })
 }
 
 export async function fetchUsers() {
-  const snapshot = await getDocs(query(usersCol, orderBy('name')))
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-}
-
-export function subscribeMessages(callback) {
-  const messagesQuery = query(messagesCol, orderBy('createdAt', 'asc'))
-  return onSnapshot(messagesQuery, snapshot => {
+  console.log("[Firestore] Fetching users from 'users' collection...");
+  try {
+    const snapshot = await getDocs(usersCol)
+    console.log(`[Firestore] Successfully fetched ${snapshot.docs.length} users.`);
     const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    callback(docs)
-  })
+    // Sort locally by name
+    docs.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    return docs
+  } catch (error) {
+    console.error("[Firestore] Error fetching users:", error);
+    throw error;
+  }
 }
 
 export async function sendMessage(userId, userName, text) {
@@ -161,9 +206,11 @@ export async function fetchTimeLogsByRange(startDate, endDate) {
   const logsQuery = query(
     logsCol,
     where('createdAt', '>=', start),
-    where('createdAt', '<=', end),
-    orderBy('createdAt', 'desc')
+    where('createdAt', '<=', end)
   )
   const snapshot = await getDocs(logsQuery)
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+  // Sort locally
+  docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+  return docs
 }

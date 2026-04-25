@@ -20,9 +20,16 @@ const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
 
 function AppTabs({ user, profile }) {
-  // If we don't have a profile yet, or if they are a worker, show the worker tabs
-  // This ensures the navigation bar (nav bars) is ALWAYS visible immediately
-  if (!profile || profile.role !== 'admin') {
+  if (!profile) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={{ marginTop: 10, color: '#666' }}>Loading profile...</Text>
+      </View>
+    )
+  }
+
+  if (profile.role === 'admin') {
     return (
       <Tab.Navigator screenOptions={({ route }) => ({
         headerShown: false,
@@ -30,6 +37,8 @@ function AppTabs({ user, profile }) {
           let iconName
           if (route.name === 'Dashboard') {
             iconName = focused ? 'view-dashboard' : 'view-dashboard-outline'
+          } else if (route.name === 'Calculation') {
+            iconName = focused ? 'calculator' : 'calculator'
           } else if (route.name === 'Messages') {
             iconName = focused ? 'email' : 'email-outline'
           } else if (route.name === 'Profile') {
@@ -41,19 +50,21 @@ function AppTabs({ user, profile }) {
         tabBarInactiveTintColor: '#ccc',
       })}>
         <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-          {props => <WorkerDashboardScreen {...props} user={user} profile={profile || { name: user.email, role: 'worker' }} />}
+          {props => <AdminDashboardScreen {...props} user={user} />}
+        </Tab.Screen>
+        <Tab.Screen name="Calculation" options={{ title: 'Calculation' }}>
+          {props => <CalculationScreen {...props} user={user} />}
         </Tab.Screen>
         <Tab.Screen name="Messages" options={{ title: 'Messages' }}>
-          {props => <MessagesScreen {...props} user={user} profile={profile || { name: user.email, role: 'worker' }} />}
+          {props => <MessagesScreen {...props} user={user} profile={profile} />}
         </Tab.Screen>
         <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-          {props => <ProfileScreen {...props} user={user} profile={profile || { name: user.email, role: 'worker' }} />}
+          {props => <ProfileScreen {...props} user={user} profile={profile} />}
         </Tab.Screen>
       </Tab.Navigator>
     )
   }
 
-  // If confirmed Admin, show the Admin tabs
   return (
     <Tab.Navigator screenOptions={({ route }) => ({
       headerShown: false,
@@ -61,8 +72,6 @@ function AppTabs({ user, profile }) {
         let iconName
         if (route.name === 'Dashboard') {
           iconName = focused ? 'view-dashboard' : 'view-dashboard-outline'
-        } else if (route.name === 'Calculation') {
-          iconName = focused ? 'calculator' : 'calculator'
         } else if (route.name === 'Messages') {
           iconName = focused ? 'email' : 'email-outline'
         } else if (route.name === 'Profile') {
@@ -74,10 +83,7 @@ function AppTabs({ user, profile }) {
       tabBarInactiveTintColor: '#ccc',
     })}>
       <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-        {props => <AdminDashboardScreen {...props} user={user} />}
-      </Tab.Screen>
-      <Tab.Screen name="Calculation" options={{ title: 'Calculation' }}>
-        {props => <CalculationScreen {...props} user={user} />}
+        {props => <WorkerDashboardScreen {...props} user={user} profile={profile} />}
       </Tab.Screen>
       <Tab.Screen name="Messages" options={{ title: 'Messages' }}>
         {props => <MessagesScreen {...props} user={user} profile={profile} />}
@@ -95,25 +101,47 @@ export default function App() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    console.log("[Auth] Starting Auth listener...");
     const unsubscribe = onAuthStateChanged(async authUser => {
       if (authUser) {
+        console.log(`[Auth] User detected: ${authUser.email} (UID: ${authUser.uid})`);
         setUser(authUser)
-        setLoading(false) // Stop loading immediately once we have a user
         
-        // Fetch profile in the background
+        // Check cache first to speed up entry
+        console.log("[Profile] Checking local cache...");
         const cachedProfile = await AsyncStorage.getItem(`profile_${authUser.uid}`)
-        if (cachedProfile) setProfile(JSON.parse(cachedProfile))
+        if (cachedProfile) {
+          console.log("[Profile] Found cached profile, setting UI...");
+          setProfile(JSON.parse(cachedProfile))
+          setLoading(false)
+        } else {
+          console.log("[Profile] No cached profile found.");
+        }
         
         try {
+          console.log("[Profile] Fetching fresh profile from Firebase...");
           const profileDoc = await fetchUserProfile(authUser.uid)
           if (profileDoc) {
+            console.log(`[Profile] Fetch successful! Role: ${profileDoc.role}`);
             setProfile(profileDoc)
             await AsyncStorage.setItem(`profile_${authUser.uid}`, JSON.stringify(profileDoc))
+          } else {
+            console.warn("[Profile] Profile document does not exist in Firestore.");
+            // Default to worker if doc doesn't exist
+            setProfile({ name: authUser.email, role: 'worker' })
           }
         } catch (e) {
-          console.log("Background profile fetch failed")
+          console.error("[Profile] Fetch error:", e.message);
+          // If offline and no cache, let them in as worker for now so they aren't stuck
+          if (!profile) {
+            console.log("[Profile] No cache and fetch failed. Defaulting to worker view to avoid stuck screen.");
+            setProfile({ name: authUser.email, role: 'worker' })
+          }
+        } finally {
+          setLoading(false)
         }
       } else {
+        console.log("[Auth] No user signed in.");
         setUser(null)
         setProfile(null)
         setLoading(false)

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react'
 import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -17,13 +18,20 @@ export default function CalculationScreen() {
   useEffect(() => {
     const loadUsers = async () => {
       try {
+        console.log("[Payroll] Fetching users list...");
         const allUsers = await fetchUsers()
+        console.log(`[Payroll] Found ${allUsers.length} total users.`);
         const workers = allUsers.filter(u => u.role !== 'admin')
+        console.log(`[Payroll] Filtered to ${workers.length} workers.`);
         setUsers(workers)
         await AsyncStorage.setItem('cached_workers', JSON.stringify(workers))
       } catch (error) {
+        console.error("[Payroll] User fetch error:", error);
         const cached = await AsyncStorage.getItem('cached_workers')
-        if (cached) setUsers(JSON.parse(cached))
+        if (cached) {
+          console.log("[Payroll] Using cached worker list.");
+          setUsers(JSON.parse(cached))
+        }
       }
     }
     loadUsers()
@@ -78,28 +86,35 @@ export default function CalculationScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>1. Select Employees</Text>
           <View style={styles.userListContainer}>
-            {users.map(item => (
-              <Pressable
-                key={item.id}
-                onPress={() => toggleUser(item.id)}
-                style={[
-                  styles.userRow, 
-                  selectedUserIds.includes(item.id) && styles.userSelected
-                ]}
-              >
-                <View style={styles.userInfo}>
-                  <View style={[styles.checkbox, selectedUserIds.includes(item.id) && styles.checkboxSelected]}>
-                    {selectedUserIds.includes(item.id) && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
+            {users.length > 0 ? (
+              users.map(item => (
+                <Pressable
+                  key={item.id}
+                  onPress={() => toggleUser(item.id)}
+                  style={[
+                    styles.userRow, 
+                    selectedUserIds.includes(item.id) && styles.userSelected
+                  ]}
+                >
+                  <View style={styles.userInfo}>
+                    <View style={[styles.checkbox, selectedUserIds.includes(item.id) && styles.checkboxSelected]}>
+                      {selectedUserIds.includes(item.id) && <MaterialCommunityIcons name="check" size={14} color="#fff" />}
+                    </View>
+                    <Text style={[styles.userName, selectedUserIds.includes(item.id) && styles.userNameSelected]}>
+                      {item.name}
+                    </Text>
                   </View>
-                  <Text style={[styles.userName, selectedUserIds.includes(item.id) && styles.userNameSelected]}>
-                    {item.name}
-                  </Text>
-                </View>
-                {selectedUserIds.includes(item.id) && (
-                  <MaterialCommunityIcons name="account-check" size={20} color="#007AFF" />
-                )}
-              </Pressable>
-            ))}
+                  {selectedUserIds.includes(item.id) && (
+                    <MaterialCommunityIcons name="account-check" size={20} color="#007AFF" />
+                  )}
+                </Pressable>
+              ))
+            ) : (
+              <View style={styles.noUsersContainer}>
+                <MaterialCommunityIcons name="account-off-outline" size={32} color="#ccc" />
+                <Text style={styles.noUsersText}>No workers found.</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -226,6 +241,19 @@ const styles = StyleSheet.create({
     padding: 8,
     borderWidth: 1,
     borderColor: '#eee',
+    minHeight: 100,
+    justifyContent: 'center',
+  },
+  noUsersContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  noUsersText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#999',
+    fontWeight: '600',
   },
   userRow: {
     flexDirection: 'row',
