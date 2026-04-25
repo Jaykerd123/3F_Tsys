@@ -170,15 +170,9 @@ export function subscribeAllLogs(callback) {
 }
 
 export function subscribeMessages(callback) {
-  const messagesQuery = query(messagesCol)
+  const messagesQuery = query(messagesCol, orderBy('createdAt', 'asc'))
   return onSnapshot(messagesQuery, snapshot => {
     const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-    // Sort locally by createdAt asc
-    docs.sort((a, b) => {
-      const dateA = a.createdAt?.seconds || 0
-      const dateB = b.createdAt?.seconds || 0
-      return dateA - dateB
-    })
     callback(docs)
   })
 }

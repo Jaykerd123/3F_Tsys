@@ -12,6 +12,7 @@ import AdminDashboardScreen from './src/screens/AdminDashboardScreen'
 import CalculationScreen from './src/screens/CalculationScreen'
 import MessagesScreen from './src/screens/MessagesScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
+import MembersScreen from './src/screens/MembersScreen'
 import { onAuthStateChanged, fetchUserProfile } from './services/firebase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 
@@ -208,7 +209,14 @@ export default function App() {
     <SafeAreaProvider>
       <NavigationContainer theme={DefaultTheme}>
         {user ? (
-          <AppTabs user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} onProfileUpdate={handleProfileUpdate} />
+          <Stack.Navigator screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="MainTabs">
+              {props => <AppTabs {...props} user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} onProfileUpdate={handleProfileUpdate} />}
+            </Stack.Screen>
+            <Stack.Screen name="Members">
+              {props => <MembersScreen {...props} theme={theme} />}
+            </Stack.Screen>
+          </Stack.Navigator>
         ) : (
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />
