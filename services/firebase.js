@@ -64,15 +64,32 @@ const logsCol = collection(db, 'timeLogs')
 const messagesCol = collection(db, 'messages')
 
 export async function signUp(email, password, name, role = 'worker') {
-  const credential = await createUserWithEmailAndPassword(auth, email, password)
-  const { uid } = credential.user
-  await setDoc(doc(usersCol, uid), {
-    name,
-    email,
-    role,
-    createdAt: serverTimestamp(),
-  })
-  return credential
+  console.log(`[Auth] Attempting signup for ${email}...`);
+  try {
+    const credential = await createUserWithEmailAndPassword(auth, email, password)
+    const { uid } = credential.user
+    console.log(`[Auth] User created (UID: ${uid}). Creating Firestore profile...`);
+    
+    try {
+      await setDoc(doc(usersCol, uid), {
+        name,
+        email,
+        role,
+        createdAt: serverTimestamp(),
+      })
+      console.log("[Firestore] Profile created successfully!");
+    } catch (dbError) {
+      console.error("[Firestore] Profile creation failed:", dbError.message);
+      // If the DB profile fails, the user is useless for our app. 
+      // We should probably alert them that their profile wasn't fully set up.
+      throw new Error(`Account created, but profile setup failed: ${dbError.message}`);
+    }
+    
+    return credential
+  } catch (error) {
+    console.error("[Auth] Signup error:", error.message);
+    throw error
+  }
 }
 
 export async function login(email, password) {

@@ -15,25 +15,32 @@ export default function CalculationScreen() {
   const [results, setResults] = useState([])
   const [calculating, setCalculating] = useState(false)
 
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        console.log("[Payroll] Fetching users list...");
-        const allUsers = await fetchUsers()
-        console.log(`[Payroll] Found ${allUsers.length} total users.`);
-        const workers = allUsers.filter(u => u.role !== 'admin')
-        console.log(`[Payroll] Filtered to ${workers.length} workers.`);
-        setUsers(workers)
-        await AsyncStorage.setItem('cached_workers', JSON.stringify(workers))
-      } catch (error) {
-        console.error("[Payroll] User fetch error:", error);
-        const cached = await AsyncStorage.getItem('cached_workers')
-        if (cached) {
-          console.log("[Payroll] Using cached worker list.");
-          setUsers(JSON.parse(cached))
-        }
+  const loadUsers = async () => {
+    try {
+      console.log("[Payroll] Fetching users list...");
+      const allUsers = await fetchUsers()
+      console.log(`[Payroll] Found ${allUsers.length} total users in DB.`);
+      
+      // Detailed log of each user to see their roles
+      allUsers.forEach(u => console.log(`[Payroll] User: ${u.name}, Role: ${u.role}, Email: ${u.email}`));
+      
+      // Show everyone who is NOT an admin
+      const workers = allUsers.filter(u => u.role !== 'admin')
+      console.log(`[Payroll] Filtered to ${workers.length} non-admin users.`);
+      
+      setUsers(workers)
+      await AsyncStorage.setItem('cached_workers', JSON.stringify(workers))
+    } catch (error) {
+      console.error("[Payroll] User fetch error:", error);
+      const cached = await AsyncStorage.getItem('cached_workers')
+      if (cached) {
+        console.log("[Payroll] Using cached worker list.");
+        setUsers(JSON.parse(cached))
       }
     }
+  }
+
+  useEffect(() => {
     loadUsers()
   }, [])
 
@@ -79,8 +86,13 @@ export default function CalculationScreen() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
-          <Text style={styles.title}>Payroll</Text>
-          <Text style={styles.subtitle}>Salary Calculator</Text>
+          <View>
+            <Text style={styles.title}>Payroll</Text>
+            <Text style={styles.subtitle}>Salary Calculator</Text>
+          </View>
+          <Pressable style={styles.refreshBtn} onPress={loadUsers}>
+            <MaterialCommunityIcons name="refresh" size={24} color="#007AFF" />
+          </Pressable>
         </View>
 
         <View style={styles.section}>
@@ -214,7 +226,22 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 24,
+  },
+  refreshBtn: {
+    padding: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   title: {
     fontSize: 28,
