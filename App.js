@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
@@ -12,24 +12,27 @@ import AdminDashboardScreen from './src/screens/AdminDashboardScreen'
 import CalculationScreen from './src/screens/CalculationScreen'
 import MessagesScreen from './src/screens/MessagesScreen'
 import ProfileScreen from './src/screens/ProfileScreen'
-import { onAuthStateChanged, fetchUserProfile, logout } from './services/firebase'
+import { onAuthStateChanged, fetchUserProfile } from './services/firebase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Button } from 'react-native'
 
 const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
 
-function AppTabs({ user, profile }) {
+function AppTabs({ user, profile, theme, onThemeChange }) {
   if (!profile) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={{ marginTop: 10, color: '#666' }}>Loading profile...</Text>
+        <ActivityIndicator size="large" color={theme === 'dark' ? '#4dabf7' : '#007AFF'} />
+        <Text style={{ marginTop: 10, color: theme === 'dark' ? '#ccc' : '#666' }}>Loading profile...</Text>
       </View>
     )
   }
 
   if (profile.role === 'admin') {
+    const activeColor = theme === 'dark' ? '#4dabf7' : '#007AFF'
+    const inactiveColor = theme === 'dark' ? '#aaa' : '#ccc'
+    const tabBarBg = theme === 'dark' ? '#121212' : '#fff'
+
     return (
       <Tab.Navigator screenOptions={({ route }) => ({
         headerShown: false,
@@ -46,8 +49,9 @@ function AppTabs({ user, profile }) {
           }
           return <MaterialCommunityIcons name={iconName} size={size} color={color} />
         },
-        tabBarActiveTintColor: '#007AFF',
-        tabBarInactiveTintColor: '#ccc',
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: inactiveColor,
+        tabBarStyle: { backgroundColor: tabBarBg },
       })}>
         <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
           {props => <AdminDashboardScreen {...props} user={user} />}
@@ -59,11 +63,15 @@ function AppTabs({ user, profile }) {
           {props => <MessagesScreen {...props} user={user} profile={profile} />}
         </Tab.Screen>
         <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-          {props => <ProfileScreen {...props} user={user} profile={profile} />}
+          {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} />}
         </Tab.Screen>
       </Tab.Navigator>
     )
   }
+
+  const activeColor = theme === 'dark' ? '#4dabf7' : '#007AFF'
+  const inactiveColor = theme === 'dark' ? '#aaa' : '#ccc'
+  const tabBarBg = theme === 'dark' ? '#121212' : '#fff'
 
   return (
     <Tab.Navigator screenOptions={({ route }) => ({
@@ -79,8 +87,9 @@ function AppTabs({ user, profile }) {
         }
         return <MaterialCommunityIcons name={iconName} size={size} color={color} />
       },
-      tabBarActiveTintColor: '#007AFF',
-      tabBarInactiveTintColor: '#ccc',
+      tabBarActiveTintColor: activeColor,
+      tabBarInactiveTintColor: inactiveColor,
+      tabBarStyle: { backgroundColor: tabBarBg },
     })}>
       <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
         {props => <WorkerDashboardScreen {...props} user={user} profile={profile} />}
@@ -89,7 +98,7 @@ function AppTabs({ user, profile }) {
         {props => <MessagesScreen {...props} user={user} profile={profile} />}
       </Tab.Screen>
       <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-        {props => <ProfileScreen {...props} user={user} profile={profile} />}
+        {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} />}
       </Tab.Screen>
     </Tab.Navigator>
   )
@@ -99,6 +108,31 @@ export default function App() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [theme, setTheme] = useState('light')
+
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const savedTheme = await AsyncStorage.getItem('app_theme')
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          setTheme(savedTheme)
+        }
+      } catch (e) {
+        console.warn('[Theme] Failed to load theme preference:', e.message)
+      }
+    }
+
+    loadTheme()
+  }, [])
+
+  const handleThemeChange = async selectedTheme => {
+    try {
+      setTheme(selectedTheme)
+      await AsyncStorage.setItem('app_theme', selectedTheme)
+    } catch (e) {
+      console.warn('[Theme] Failed to save theme preference:', e.message)
+    }
+  }
 
   useEffect(() => {
     console.log("[Auth] Starting Auth listener...");
@@ -160,9 +194,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer theme={theme === 'dark' ? DarkTheme : DefaultTheme}>
         {user ? (
-          <AppTabs user={user} profile={profile} />
+          <AppTabs user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} />
         ) : (
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />

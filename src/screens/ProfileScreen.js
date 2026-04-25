@@ -4,19 +4,48 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout, updateUserProfile, subscribeUserLogs, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
-export default function ProfileScreen({ user, profile }) {
+export default function ProfileScreen({ user, profile, theme = 'light', onThemeChange }) {
   const [name, setName] = useState(profile?.name || '')
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
+  const [darkMode, setDarkMode] = useState(theme === 'dark')
 
   useEffect(() => {
     setName(profile?.name || '')
   }, [profile?.name])
 
   useEffect(() => {
+    setDarkMode(theme === 'dark')
+  }, [theme])
+
+  useEffect(() => {
     const unsubscribe = subscribeUserLogs(user.uid, setLogs)
     return unsubscribe
   }, [user.uid])
+
+  const isDark = theme === 'dark'
+  const colors = {
+    background: isDark ? '#121212' : '#f8f9fa',
+    card: isDark ? '#1e1e1e' : '#fff',
+    border: isDark ? '#2a2a2a' : '#eee',
+    text: isDark ? '#fff' : '#1a1a1a',
+    secondary: isDark ? '#ccc' : '#666',
+    muted: isDark ? '#999' : '#999',
+    inputBg: isDark ? '#171717' : '#f8f9fa',
+    sectionBg: isDark ? '#1b1b1b' : '#fff',
+    roleBg: isDark ? '#22303d' : '#E8F2FF',
+    roleText: isDark ? '#8ab8ff' : '#007AFF',
+    logoutBg: isDark ? '#3a121f' : '#FFF5F5',
+    logoutBorder: isDark ? '#5f1f35' : '#FFE3E3',
+  }
+
+  const toggleDarkMode = async () => {
+    const nextMode = darkMode ? 'light' : 'dark'
+    setDarkMode(!darkMode)
+    if (typeof onThemeChange === 'function') {
+      await onThemeChange(nextMode)
+    }
+  }
 
   const handleLogout = async () => {
     Alert.alert('Logout', 'Are you sure you want to sign out?', [
@@ -67,15 +96,15 @@ export default function ProfileScreen({ user, profile }) {
           <MaterialCommunityIcons name="camera-outline" size={16} color="#fff" />
         </Pressable>
       </View>
-      <Text style={styles.profileName}>{profile?.name || 'User'}</Text>
-      <View style={styles.roleBadge}>
-        <Text style={styles.roleText}>{profile?.role || 'Worker'}</Text>
+      <Text style={[styles.profileName, { color: colors.text }]}>{profile?.name || 'User'}</Text>
+      <View style={[styles.roleBadge, { backgroundColor: colors.roleBg }]}> 
+        <Text style={[styles.roleText, { color: colors.roleText }]}>{profile?.role || 'Worker'}</Text>
       </View>
     </View>
   )
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
       <FlatList
         data={logs}
         keyExtractor={item => item.id}
@@ -84,27 +113,41 @@ export default function ProfileScreen({ user, profile }) {
           <>
             {renderHeader()}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Account Settings</Text>
-              <View style={styles.inputCard}>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Settings</Text>
+              <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Email Address</Text>
-                  <View style={styles.disabledInput}>
-                    <MaterialCommunityIcons name="email-outline" size={20} color="#999" />
-                    <Text style={styles.disabledInputText}>{user.email}</Text>
+                  <Text style={[styles.label, { color: colors.secondary }]}>Email Address</Text>
+                  <View style={[styles.disabledInput, { backgroundColor: colors.inputBg }]}> 
+                    <MaterialCommunityIcons name="email-outline" size={20} color={colors.muted} />
+                    <Text style={[styles.disabledInputText, { color: colors.muted }]}>{user.email}</Text>
                   </View>
                 </View>
                 
                 <View style={styles.inputGroup}>
-                  <Text style={styles.label}>Full Name</Text>
-                  <View style={styles.inputWrapper}>
-                    <MaterialCommunityIcons name="account-outline" size={20} color="#007AFF" />
+                  <Text style={[styles.label, { color: colors.secondary }]}>Full Name</Text>
+                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}> 
+                    <MaterialCommunityIcons name="account-outline" size={20} color={colors.highlight} />
                     <TextInput 
-                      style={styles.input} 
+                      style={[styles.input, { color: colors.text }]} 
                       value={name} 
                       onChangeText={setName} 
                       placeholder="Enter your name"
+                      placeholderTextColor={colors.secondary}
                     />
                   </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.label, { color: colors.secondary }]}>Dark Mode</Text>
+                  <Pressable
+                    style={[styles.themeToggle, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                    onPress={toggleDarkMode}
+                  >
+                    <Text style={[styles.themeToggleText, { color: colors.text }]}>{darkMode ? 'Enabled' : 'Disabled'}</Text>
+                    <View style={[styles.themeSwitch, { backgroundColor: darkMode ? '#4CD964' : '#545454' }]}> 
+                      <View style={[styles.themeSwitchThumb, darkMode ? styles.themeSwitchRight : styles.themeSwitchLeft]} />
+                    </View>
+                  </Pressable>
                 </View>
 
                 <Pressable 
@@ -122,21 +165,21 @@ export default function ProfileScreen({ user, profile }) {
             </View>
 
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Session History</Text>
-              <Text style={styles.logCount}>{logs.length} Total</Text>
+              <Text style={[styles.sectionTitle, { color: colors.text }]}>Session History</Text>
+              <Text style={[styles.logCount, { color: colors.secondary }]}>{logs.length} Total</Text>
             </View>
           </>
         )}
         renderItem={({ item }) => (
-          <View style={styles.logItem}>
-            <View style={styles.logIcon}>
+          <View style={[styles.logItem, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <View style={[styles.logIcon, { backgroundColor: isDark ? '#163222' : '#F0FFF4' }]}> 
               <MaterialCommunityIcons name="clock-check-outline" size={20} color="#4CD964" />
             </View>
             <View style={styles.logInfo}>
-              <Text style={styles.logDate}>
+              <Text style={[styles.logDate, { color: colors.text }]}> 
                 {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
               </Text>
-              <Text style={styles.logTime}>
+              <Text style={[styles.logTime, { color: colors.secondary }]}> 
                 {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 {' - '}
                 {item.timeOut 
@@ -150,14 +193,14 @@ export default function ProfileScreen({ user, profile }) {
           </View>
         )}
         ListFooterComponent={() => (
-          <Pressable style={styles.logoutButton} onPress={handleLogout}>
+          <Pressable style={[styles.logoutButton, { backgroundColor: colors.logoutBg, borderColor: colors.logoutBorder }]} onPress={handleLogout}>
             <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
             <Text style={styles.logoutText}>Sign Out</Text>
           </Pressable>
         )}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No sessions found.</Text>
+            <Text style={[styles.emptyText, { color: colors.secondary }]}>No sessions found.</Text>
           </View>
         }
       />
@@ -376,6 +419,38 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  themeToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 50,
+    borderWidth: 1,
+  },
+  themeToggleText: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  themeSwitch: {
+    width: 44,
+    height: 24,
+    borderRadius: 12,
+    padding: 3,
+    justifyContent: 'center',
+  },
+  themeSwitchThumb: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: '#fff',
+  },
+  themeSwitchRight: {
+    alignSelf: 'flex-end',
+  },
+  themeSwitchLeft: {
+    alignSelf: 'flex-start',
   },
   emptyContainer: {
     alignItems: 'center',
