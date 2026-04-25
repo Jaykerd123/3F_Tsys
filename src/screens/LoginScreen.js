@@ -26,63 +26,65 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <MaterialCommunityIcons name="clock-outline" size={60} color="#007AFF" />
-          </View>
-          <Text style={styles.title}>3F TSys</Text>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
-        </View>
-
-        <View style={styles.form}>
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="email-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email Address"
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              placeholderTextColor="#999"
-            />
+      <View style={styles.screenBackground}>
+        <View style={styles.card}>
+          <View style={styles.header}>
+            <View style={styles.logoContainer}>
+              <MaterialCommunityIcons name="clock-outline" size={44} color="#fff" />
+            </View>
+            <Text style={styles.title}>3F TSys</Text>
+            <Text style={styles.subtitle}>Sign in to continue</Text>
           </View>
 
-          <View style={styles.inputWrapper}>
-            <MaterialCommunityIcons name="lock-outline" size={20} color="#666" style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              placeholderTextColor="#999"
-            />
+          <View style={styles.form}>
+            <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons name="email-outline" size={20} color="#5d6d86" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Email Address"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                placeholderTextColor="#a8b3c3"
+              />
+            </View>
+
+            <View style={styles.inputWrapper}>
+              <MaterialCommunityIcons name="lock-outline" size={20} color="#5d6d86" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                placeholderTextColor="#a8b3c3"
+              />
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.buttonPressed,
+                loading && styles.buttonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Sign In</Text>
+              )}
+            </Pressable>
           </View>
 
-          <Pressable 
-            style={({ pressed }) => [
-              styles.button,
-              pressed && styles.buttonPressed,
-              loading && styles.buttonDisabled
-            ]} 
-            onPress={handleLogin} 
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
-            )}
-          </Pressable>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
-          <Pressable onPress={() => navigation.navigate('Signup')}>
-            <Text style={styles.link}>Create one</Text>
-          </Pressable>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <Pressable onPress={() => navigation.navigate('Signup')}>
+              <Text style={styles.link}>Create one</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </SafeAreaView>
@@ -92,41 +94,46 @@ export default function LoginScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#e8effb',
   },
-  content: {
+  screenBackground: {
     flex: 1,
-    padding: 24,
+    padding: 20,
     justifyContent: 'center',
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 28,
+    padding: 26,
+    shadowColor: '#1b4fcd',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.08,
+    shadowRadius: 24,
+    elevation: 8,
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 28,
   },
   logoContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#fff',
+    width: 74,
+    height: 74,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
+    marginBottom: 18,
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
-    color: '#1a1a1a',
+    color: '#10203f',
     letterSpacing: 0.5,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 8,
+    fontSize: 15,
+    color: '#5a6b8f',
+    marginTop: 6,
   },
   form: {
     width: '100%',
@@ -134,13 +141,13 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#f5f8ff',
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
+    borderColor: '#dde5f2',
+    borderRadius: 16,
     marginBottom: 16,
     paddingHorizontal: 16,
-    height: 56,
+    height: 52,
   },
   inputIcon: {
     marginRight: 12,
@@ -148,40 +155,40 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 16,
-    color: '#1a1a1a',
+    color: '#1f2d45',
   },
   button: {
     backgroundColor: '#007AFF',
     height: 56,
-    borderRadius: 12,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 16,
-    elevation: 2,
+    marginTop: 8,
     shadowColor: '#007AFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 18,
+    elevation: 6,
   },
   buttonPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
+    opacity: 0.92,
+    transform: [{ scale: 0.99 }],
   },
   buttonDisabled: {
-    backgroundColor: '#a0c4ff',
+    backgroundColor: '#74a9ff',
   },
   buttonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '700',
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: 20,
   },
   footerText: {
-    color: '#666',
+    color: '#5d6d86',
     fontSize: 15,
   },
   link: {

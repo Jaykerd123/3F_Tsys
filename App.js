@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native'
 import { SafeAreaProvider } from 'react-native-safe-area-context'
-import { NavigationContainer, DarkTheme, DefaultTheme } from '@react-navigation/native'
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
@@ -54,7 +54,7 @@ function AppTabs({ user, profile, theme, onThemeChange }) {
         tabBarStyle: { backgroundColor: tabBarBg },
       })}>
         <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-          {props => <AdminDashboardScreen {...props} user={user} theme={theme} />}
+          {props => <AdminDashboardScreen {...props} user={user} profile={profile} theme={theme} />}
         </Tab.Screen>
         <Tab.Screen name="Calculation" options={{ title: 'Calculation' }}>
           {props => <CalculationScreen {...props} user={user} theme={theme} />}
@@ -194,7 +194,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer theme={theme === 'dark' ? DarkTheme : DefaultTheme}>
+      <NavigationContainer theme={DefaultTheme}>
         {user ? (
           <AppTabs user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} />
         ) : (

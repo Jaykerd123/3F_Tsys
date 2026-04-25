@@ -87,9 +87,11 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
 
   const renderHeader = () => (
     <View style={[styles.header, { borderBottomColor: colors.border }]}> 
-      <View>
+      <View style={styles.headerLeft}>
+        <Text style={[styles.companyTitle, { color: colors.secondary }]}>3F Tsys</Text>
         <Text style={[styles.greeting, { color: colors.secondary }]}>Welcome back,</Text>
         <Text style={[styles.userName, { color: colors.text }]}>{profile.name || 'Worker'}</Text>
+        <Text style={[styles.roleLabel, { color: colors.secondary }]}>{profile.role ? `${profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}` : 'Worker'}</Text>
       </View>
       <View style={[styles.statusBadge, { backgroundColor: colors.card, borderColor: colors.border }]}> 
         <View style={[styles.statusDot, { backgroundColor: activeLog ? '#4CD964' : '#FF3B30' }]} />
@@ -282,6 +284,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#444',
   },
+  headerLeft: {
+    flex: 1,
+  },
+  companyTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
   actionCard: {
     backgroundColor: '#fff',
     borderRadius: 20,
@@ -406,6 +418,13 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: '#1a1a1a',
+  },
+  roleLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 4,
+    textTransform: 'capitalize',
   },
   logActions: {
     flexDirection: 'row',

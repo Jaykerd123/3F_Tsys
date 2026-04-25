@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
 import { View, Text, StyleSheet, FlatList, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { subscribeAllLogs } from '../../services/firebase'
+import { subscribeAllLogs, fetchUsers } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
-export default function AdminDashboardScreen({ theme = 'light' }) {
+export default function AdminDashboardScreen({ theme = 'light', profile }) {
   const [logs, setLogs] = useState([])
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const isDark = theme === 'dark'
   const colors = {
@@ -17,6 +18,7 @@ export default function AdminDashboardScreen({ theme = 'light' }) {
     badgeBg: isDark ? '#0f3c74' : '#007AFF',
     avatarBg: isDark ? '#16212d' : '#F0F7FF',
     badgeText: '#fff',
+    section: isDark ? '#1a1a1f' : '#f1f3f5',
     empty: isDark ? '#888' : '#ccc',
     divider: isDark ? '#2a2a2a' : '#eee',
   }
@@ -29,12 +31,30 @@ export default function AdminDashboardScreen({ theme = 'light' }) {
     return unsubscribe
   }, [])
 
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const allUsers = await fetchUsers()
+        setUsers(allUsers)
+      } catch (error) {
+        console.error('[AdminDashboard] Failed to load users:', error)
+      }
+    }
+    loadUsers()
+  }, [])
+
+  const userMap = users.reduce((map, user) => {
+    map[user.id] = user
+    return map
+  }, {})
+
   const activeWorkersCount = logs.filter(log => !log.timeOut).length
 
   const renderHeader = () => (
     <View style={[styles.header, { borderBottomColor: colors.divider }]}> 
-      <View>
-        <Text style={[styles.title, { color: colors.text }]}>Admin Panel</Text>
+      <View style={styles.headerLeft}>
+        <Text style={[styles.companyTitle, { color: colors.badgeBg }]}>3F Tsys</Text>
+        <Text style={[styles.userTitle, { color: colors.text }]}>{profile?.name ? `${profile.name} ${profile.role ? profile.role.charAt(0).toUpperCase() + profile.role.slice(1) : ''}` : 'Admin'}</Text>
         <Text style={[styles.subtitle, { color: colors.secondary }]}>System Overview</Text>
       </View>
       <View style={[styles.statsCard, { backgroundColor: colors.badgeBg }]}> 
@@ -55,10 +75,11 @@ export default function AdminDashboardScreen({ theme = 'light' }) {
             <View style={styles.logHeader}>
               <View style={styles.userContainer}>
                 <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{item.userName ? item.userName[0].toUpperCase() : '?'}</Text>
+                  <Text style={styles.avatarText}>{(userMap[item.userId]?.name || item.userName || '?')[0]?.toUpperCase() || '?'}</Text>
                 </View>
                 <View>
-                  <Text style={[styles.userName, { color: colors.text }]}>{item.userName || 'Unknown'}</Text>
+                  <Text style={[styles.userName, { color: colors.text }]}>{userMap[item.userId]?.name || item.userName || 'Unknown'}</Text>
+                  <Text style={[styles.userRole, { color: colors.secondary }]}>{userMap[item.userId]?.role ? `${userMap[item.userId].role.charAt(0).toUpperCase() + userMap[item.userId].role.slice(1)}` : 'Unknown Role'}</Text>
                   <View style={[styles.statusBadge, { backgroundColor: colors.section, borderColor: colors.border }]}> 
                     <View style={[styles.statusDot, { backgroundColor: item.timeOut ? '#8E8E93' : '#4CD964' }]} />
                     <Text style={[styles.statusText, { color: colors.secondary }]}>{item.timeOut ? 'Completed' : 'Working Now'}</Text>
@@ -152,6 +173,21 @@ const styles = StyleSheet.create({
     color: '#666',
     marginTop: 2,
   },
+  headerLeft: {
+    flex: 1,
+  },
+  companyTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  userTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
   statsCard: {
     backgroundColor: '#007AFF',
     paddingHorizontal: 16,
@@ -216,6 +252,13 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: '#1a1a1a',
+  },
+  userRole: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginTop: 2,
+    textTransform: 'capitalize',
   },
   statusBadge: {
     flexDirection: 'row',
