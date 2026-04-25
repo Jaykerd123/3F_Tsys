@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, Button, StyleSheet, FlatList, TextInput, Alert } from 'react-native'
+import { View, Text, Pressable, StyleSheet, FlatList, TextInput, Alert, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { subscribeUserLogs, createTimeLog, updateTimeLog, sendSystemMessage, deleteTimeLog } from '../../services/firebase'
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function WorkerDashboardScreen({ user, profile }) {
   const [logs, setLogs] = useState([])
   const [editingId, setEditingId] = useState(null)
   const [editTimeIn, setEditTimeIn] = useState('')
   const [editTimeOut, setEditTimeOut] = useState('')
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const unsubscribe = subscribeUserLogs(user.uid, setLogs)
@@ -18,20 +20,26 @@ export default function WorkerDashboardScreen({ user, profile }) {
 
   const handleTimeIn = async () => {
     try {
+      setLoading(true)
       await createTimeLog(user.uid, profile.name || user.email)
       await sendSystemMessage(profile.name || user.email, `${profile.name || user.email} timed in.`)
     } catch (error) {
       Alert.alert('Time In failed', error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
   const handleTimeOut = async () => {
     if (!activeLog) return
     try {
+      setLoading(true)
       await updateTimeLog(activeLog.id, new Date().toISOString())
       await sendSystemMessage(profile.name || user.email, `${profile.name || user.email} timed out.`)
     } catch (error) {
       Alert.alert('Time Out failed', error.message)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -52,67 +60,161 @@ export default function WorkerDashboardScreen({ user, profile }) {
   }
 
   const removeLog = async id => {
-    try {
-      await deleteTimeLog(id)
-    } catch (error) {
-      Alert.alert('Delete failed', error.message)
-    }
+    Alert.alert('Delete Log', 'Are you sure you want to delete this session?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        try {
+          await deleteTimeLog(id)
+        } catch (error) {
+          Alert.alert('Delete failed', error.message)
+        }
+      }}
+    ])
   }
+
+  const renderHeader = () => (
+    <View style={styles.header}>
+      <View>
+        <Text style={styles.greeting}>Welcome back,</Text>
+        <Text style={styles.userName}>{profile.name || 'Worker'}</Text>
+      </View>
+      <View style={styles.statusBadge}>
+        <View style={[styles.statusDot, { backgroundColor: activeLog ? '#4CD964' : '#FF3B30' }]} />
+        <Text style={styles.statusText}>{activeLog ? 'On Clock' : 'Off Clock'}</Text>
+      </View>
+    </View>
+  )
+
+  const renderActiveSession = () => (
+    <View style={styles.actionCard}>
+      <Text style={styles.cardTitle}>{activeLog ? 'Active Session' : 'Start Working'}</Text>
+      {activeLog && (
+        <View style={styles.timerContainer}>
+          <MaterialCommunityIcons name="clock-outline" size={24} color="#007AFF" />
+          <Text style={styles.timerText}>{getDurationText(activeLog.timeIn, null)}</Text>
+        </View>
+      )}
+      <Pressable
+        style={({ pressed }) => [
+          styles.actionButton,
+          activeLog ? styles.timeOutButton : styles.timeInButton,
+          pressed && styles.buttonPressed,
+          loading && styles.buttonDisabled
+        ]}
+        onPress={activeLog ? handleTimeOut : handleTimeIn}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <>
+            <MaterialCommunityIcons 
+              name={activeLog ? "logout" : "login"} 
+              size={24} 
+              color="#fff" 
+            />
+            <Text style={styles.actionButtonText}>
+              {activeLog ? 'Time Out' : 'Time In'}
+            </Text>
+          </>
+        )}
+      </Pressable>
+    </View>
+  )
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Worker Dashboard</Text>
-      <View style={styles.buttonRow}>
-        {!activeLog ? (
-          <Button title="Time In" onPress={handleTimeIn} />
-        ) : (
-          <Button title="Time Out" onPress={handleTimeOut} color="#cc0000" />
-        )}
-      </View>
-      <Text style={styles.sectionTitle}>Recent Sessions</Text>
       <FlatList
         data={logs}
         keyExtractor={item => item.id}
+        ListHeaderComponent={() => (
+          <>
+            {renderHeader()}
+            {renderActiveSession()}
+            <Text style={styles.sectionTitle}>Recent History</Text>
+          </>
+        )}
         renderItem={({ item }) => (
           <View style={styles.logCard}>
-            <Text style={styles.logLabel}>Start</Text>
-            <Text>{new Date(item.timeIn).toLocaleString()}</Text>
-            <Text style={styles.logLabel}>End</Text>
-            <Text>{item.timeOut ? new Date(item.timeOut).toLocaleString() : 'Active session'}</Text>
-            <Text style={styles.logLabel}>Duration</Text>
-            <Text>{getDurationText(item.timeIn, item.timeOut)}</Text>
+            <View style={styles.logHeader}>
+              <View style={styles.logDateContainer}>
+                <MaterialCommunityIcons name="calendar-range" size={20} color="#666" />
+                <Text style={styles.logDate}>
+                  {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                </Text>
+              </View>
+              <View style={styles.logDurationBadge}>
+                <Text style={styles.logDurationText}>{getDurationText(item.timeIn, item.timeOut)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.logTimes}>
+              <View style={styles.timeInfo}>
+                <Text style={styles.timeLabel}>Started</Text>
+                <Text style={styles.timeValue}>
+                  {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Text>
+              </View>
+              <View style={styles.timeDivider} />
+              <View style={styles.timeInfo}>
+                <Text style={styles.timeLabel}>Ended</Text>
+                <Text style={styles.timeValue}>
+                  {item.timeOut 
+                    ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                    : 'Active'}
+                </Text>
+              </View>
+            </View>
+
             {editingId === item.id ? (
-              <>
+              <View style={styles.editSection}>
                 <TextInput
-                  style={styles.input}
+                  style={styles.editInput}
                   value={editTimeIn}
                   onChangeText={setEditTimeIn}
-                  placeholder="YYYY-MM-DDTHH:MM:SS"
+                  placeholder="In: YYYY-MM-DDTHH:MM:SS"
                 />
                 <TextInput
-                  style={styles.input}
+                  style={styles.editInput}
                   value={editTimeOut}
                   onChangeText={setEditTimeOut}
-                  placeholder="YYYY-MM-DDTHH:MM:SS"
+                  placeholder="Out: YYYY-MM-DDTHH:MM:SS"
                 />
-                <Button title="Save" onPress={saveEdit} />
-              </>
+                <View style={styles.editActions}>
+                  <Pressable style={[styles.editBtn, styles.saveBtn]} onPress={saveEdit}>
+                    <Text style={styles.editBtnText}>Save</Text>
+                  </Pressable>
+                  <Pressable style={[styles.editBtn, styles.cancelBtn]} onPress={() => setEditingId(null)}>
+                    <Text style={styles.editBtnText}>Cancel</Text>
+                  </Pressable>
+                </View>
+              </View>
             ) : (
               <View style={styles.logActions}>
-                <Button title="Edit" onPress={() => startEdit(item)} />
-                <Button title="Delete" onPress={() => removeLog(item.id)} color="#cc0000" />
+                <Pressable style={styles.iconAction} onPress={() => startEdit(item)}>
+                  <MaterialCommunityIcons name="pencil-outline" size={22} color="#007AFF" />
+                </Pressable>
+                <Pressable style={styles.iconAction} onPress={() => removeLog(item.id)}>
+                  <MaterialCommunityIcons name="trash-can-outline" size={22} color="#FF3B30" />
+                </Pressable>
               </View>
             )}
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>No time logs yet.</Text>}
+        ListEmptyComponent={
+          <View style={styles.emptyContainer}>
+            <MaterialCommunityIcons name="clipboard-text-outline" size={60} color="#ccc" />
+            <Text style={styles.emptyText}>No sessions recorded yet.</Text>
+          </View>
+        }
+        contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
   )
 }
 
 function getDurationText(start, end) {
-  if (!start) return 'Unknown'
+  if (!start) return '0h 0m'
   const startDate = new Date(start)
   const endDate = end ? new Date(end) : new Date()
   const diff = Math.max(0, endDate - startDate)
@@ -124,48 +226,226 @@ function getDurationText(start, end) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    backgroundColor: '#f8f9fa',
   },
-  title: {
+  listContent: {
+    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  greeting: {
+    fontSize: 16,
+    color: '#666',
+  },
+  userName: {
     fontSize: 24,
+    fontWeight: '800',
+    color: '#1a1a1a',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#444',
+  },
+  actionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 24,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    alignItems: 'center',
+  },
+  cardTitle: {
+    fontSize: 18,
     fontWeight: '700',
+    color: '#1a1a1a',
     marginBottom: 16,
   },
-  buttonRow: {
-    marginBottom: 16,
+  timerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  timerText: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#007AFF',
+    marginLeft: 8,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    width: '100%',
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeInButton: {
+    backgroundColor: '#007AFF',
+  },
+  timeOutButton: {
+    backgroundColor: '#FF3B30',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  buttonPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    marginVertical: 12,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    marginBottom: 16,
   },
   logCard: {
-    marginBottom: 16,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     padding: 16,
-    borderRadius: 12,
+    marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#eee',
   },
-  logLabel: {
-    marginTop: 8,
+  logHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logDate: {
+    fontSize: 15,
     fontWeight: '600',
+    color: '#1a1a1a',
+    marginLeft: 6,
+  },
+  logDurationBadge: {
+    backgroundColor: '#F0F7FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  logDurationText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  logTimes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  timeInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  timeDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#ddd',
+  },
+  timeLabel: {
+    fontSize: 11,
+    color: '#666',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  timeValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a1a1a',
   },
   logActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
+    justifyContent: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 12,
   },
-  input: {
+  iconAction: {
+    padding: 8,
+    marginLeft: 12,
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 60,
+  },
+  emptyText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#999',
+  },
+  editSection: {
+    marginTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    paddingTop: 15,
+  },
+  editInput: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: '#eee',
     borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    marginTop: 12,
+    padding: 10,
+    marginBottom: 10,
+    fontSize: 14,
   },
-  empty: {
-    marginTop: 48,
-    textAlign: 'center',
-    color: '#666',
+  editActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  editBtn: {
+    flex: 0.48,
+    height: 40,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtn: {
+    backgroundColor: '#007AFF',
+  },
+  cancelBtn: {
+    backgroundColor: '#666',
+  },
+  editBtnText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 })

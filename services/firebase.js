@@ -4,7 +4,10 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  initializeAuth,
+  getReactNativePersistence
 } from 'firebase/auth'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   getFirestore,
   collection,
@@ -21,6 +24,9 @@ import {
   onSnapshot,
   serverTimestamp,
   Timestamp,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager
 } from 'firebase/firestore'
 
 const firebaseConfig = {
@@ -33,7 +39,9 @@ const firebaseConfig = {
 }
 
 const app = initializeApp(firebaseConfig)
-const auth = getAuth(app)
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+})
 const db = getFirestore(app)
 const usersCol = collection(db, 'users')
 const logsCol = collection(db, 'timeLogs')
