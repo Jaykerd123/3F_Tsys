@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform } from 'react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { subscribeMessages, sendMessage } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MessagesScreen({ user, profile, theme = 'light', navigation }) {
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
+  const [isKeyboardVisible, setKeyboardVisible] = useState(false)
   const flatListRef = useRef(null)
   const isDark = theme === 'dark'
   const colors = {
@@ -28,6 +29,15 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
   useEffect(() => {
     const unsubscribe = subscribeMessages(setMessages)
     return unsubscribe
+  }, [])
+
+  useEffect(() => {
+    const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardVisible(true))
+    const hideSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setKeyboardVisible(false))
+    return () => {
+      showSub.remove()
+      hideSub.remove()
+    }
   }, [])
 
   const handleSend = async () => {
@@ -99,7 +109,7 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 60}
-        style={styles.keyboardAvoid}
+        style={[styles.keyboardAvoid, { marginBottom: isKeyboardVisible ? 0 : 80 }]}
       >
         <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
           <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}> 
