@@ -24,20 +24,20 @@ function AppTabs({ user, profile, theme, onThemeChange, onProfileUpdate }) {
 
   const floatingTabBarStyle = {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: insets.bottom + 14,
+    left: 0,
+    right: 0,
+    bottom: insets.bottom,
     borderRadius: 24,
-    backgroundColor: theme === 'dark' ? 'rgba(18,18,18,0.92)' : 'rgba(255,255,255,0.92)',
+    backgroundColor: theme === 'dark' ? '#121212' : '#fff',
     borderTopWidth: 0,
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: theme === 'dark' ? 0.35 : 0.15,
     shadowRadius: 18,
-    height: 78 + insets.bottom,
+    height: 78,
     paddingTop: 10,
-    paddingBottom: insets.bottom + 10,
+    paddingBottom: 10,
   }
 
   const baseScreenOptions = ({ route }) => ({
