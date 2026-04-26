@@ -90,13 +90,16 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
         data={messages}
         keyExtractor={item => item.id}
         renderItem={renderMessage}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 140 }]}
+        style={styles.list}
+        keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 60}
+        style={styles.keyboardAvoid}
       >
         <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
           <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}> 
@@ -262,19 +265,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   inputContainer: {
-    padding: 12,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 12,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
   },
   inputWrapper: {
     flexDirection: 'row',
-    alignItems: 'flex-end',
+    alignItems: 'center',
     backgroundColor: '#f8f9fa',
     borderRadius: 24,
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderWidth: 1,
     borderColor: '#eee',
   },
@@ -285,6 +289,12 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 8,
     color: '#1a1a1a',
+  },
+  list: {
+    flex: 1,
+  },
+  keyboardAvoid: {
+    width: '100%',
   },
   sendButton: {
     width: 40,
