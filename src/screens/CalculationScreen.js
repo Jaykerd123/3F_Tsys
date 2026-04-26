@@ -272,7 +272,9 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   listContent: {
-    padding: 16,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
   workerCard: {
     flexDirection: 'row',

@@ -90,7 +90,7 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
         data={messages}
         keyExtractor={item => item.id}
         renderItem={renderMessage}
-        contentContainerStyle={[styles.listContent, { paddingBottom: 140 }]}
+        contentContainerStyle={[styles.listContent, { paddingBottom: 90 }]}
         style={styles.list}
         keyboardShouldPersistTaps="handled"
         onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
@@ -131,6 +131,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
+  listContent: {
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 15,
@@ -168,9 +173,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     marginLeft: 6,
-  },
-  listContent: {
-    padding: 16,
   },
   messageContainer: {
     flexDirection: 'row',

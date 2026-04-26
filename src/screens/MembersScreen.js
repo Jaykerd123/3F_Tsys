@@ -108,7 +108,9 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
   listContent: {
-    paddingBottom: 24,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
   memberRow: {
     flexDirection: 'row',

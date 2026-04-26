@@ -246,7 +246,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   listContent: {
-    padding: 20,
+    paddingTop: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 8,
   },
   header: {
     flexDirection: 'row',

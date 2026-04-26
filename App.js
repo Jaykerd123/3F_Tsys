@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
+﻿import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, View, StyleSheet, Text } from 'react-native'
-import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { NavigationContainer, DefaultTheme } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
@@ -20,86 +20,121 @@ const Stack = createNativeStackNavigator()
 const Tab = createBottomTabNavigator()
 
 function AppTabs({ user, profile, theme, onThemeChange, onProfileUpdate }) {
+  const insets = useSafeAreaInsets()
+
+  const floatingTabBarStyle = {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: insets.bottom + 14,
+    borderRadius: 24,
+    backgroundColor: theme === 'dark' ? 'rgba(18,18,18,0.92)' : 'rgba(255,255,255,0.92)',
+    borderTopWidth: 0,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: theme === 'dark' ? 0.35 : 0.15,
+    shadowRadius: 18,
+    height: 78 + insets.bottom,
+    paddingTop: 10,
+    paddingBottom: insets.bottom + 10,
+  }
+
+  const baseScreenOptions = ({ route }) => ({
+    headerShown: false,
+    tabBarItemStyle: { width: '25%' },
+    tabBarIconStyle: { marginTop: 4 },
+    tabBarIcon: ({ focused, color, size }) => {
+      let iconName = 'circle'
+
+      if (route.name === 'Dashboard') {
+        iconName = focused ? 'view-dashboard' : 'view-dashboard-outline'
+      } else if (route.name === 'Calculation') {
+        iconName = focused ? 'calculator' : 'calculator'
+      } else if (route.name === 'Messages') {
+        iconName = focused ? 'email' : 'email-outline'
+      } else if (route.name === 'Profile') {
+        iconName = focused ? 'account' : 'account-outline'
+      }
+
+      return <MaterialCommunityIcons name={iconName} size={size} color={color} />
+    },
+    tabBarActiveTintColor: theme === 'dark' ? '#4dabf7' : '#007AFF',
+    tabBarInactiveTintColor: theme === 'dark' ? '#aaa' : '#ccc',
+    tabBarStyle: floatingTabBarStyle,
+  })
+
   if (!profile) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={theme === 'dark' ? '#4dabf7' : '#007AFF'} />
-        <Text style={{ marginTop: 10, color: theme === 'dark' ? '#ccc' : '#666' }}>Loading profile...</Text>
+        <Text style={{ marginTop: 10, color: theme === 'dark' ? '#ccc' : '#666' }}>
+          Loading profile...
+        </Text>
       </View>
     )
   }
 
   if (profile.role === 'admin') {
-    const activeColor = theme === 'dark' ? '#4dabf7' : '#007AFF'
-    const inactiveColor = theme === 'dark' ? '#aaa' : '#ccc'
-    const tabBarBg = theme === 'dark' ? '#121212' : '#fff'
-
     return (
-      <Tab.Navigator screenOptions={({ route }) => ({
-        headerShown: false,
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'view-dashboard' : 'view-dashboard-outline'
-          } else if (route.name === 'Calculation') {
-            iconName = focused ? 'calculator' : 'calculator'
-          } else if (route.name === 'Messages') {
-            iconName = focused ? 'email' : 'email-outline'
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'account' : 'account-outline'
-          }
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />
-        },
-        tabBarActiveTintColor: activeColor,
-        tabBarInactiveTintColor: inactiveColor,
-        tabBarStyle: { backgroundColor: tabBarBg },
-      })}>
-        <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-          {props => <AdminDashboardScreen {...props} user={user} profile={profile} theme={theme} />}
+      <Tab.Navigator screenOptions={baseScreenOptions}>
+        <Tab.Screen name="Dashboard">
+          {props => (
+            <AdminDashboardScreen {...props} user={user} profile={profile} theme={theme} />
+          )}
         </Tab.Screen>
-        <Tab.Screen name="Calculation" options={{ title: 'Calculation' }}>
+
+        <Tab.Screen name="Calculation">
           {props => <CalculationScreen {...props} user={user} theme={theme} />}
         </Tab.Screen>
-        <Tab.Screen name="Messages" options={{ title: 'Messages' }}>
-          {props => <MessagesScreen {...props} user={user} profile={profile} theme={theme} />}
+
+        <Tab.Screen name="Messages">
+          {props => (
+            <MessagesScreen {...props} user={user} profile={profile} theme={theme} />
+          )}
         </Tab.Screen>
-        <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-          {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} onProfileUpdate={onProfileUpdate} />}
+
+        <Tab.Screen name="Profile">
+          {props => (
+            <ProfileScreen
+              {...props}
+              user={user}
+              profile={profile}
+              theme={theme}
+              onThemeChange={onThemeChange}
+              onProfileUpdate={onProfileUpdate}
+            />
+          )}
         </Tab.Screen>
       </Tab.Navigator>
     )
   }
 
-  const activeColor = theme === 'dark' ? '#4dabf7' : '#007AFF'
-  const inactiveColor = theme === 'dark' ? '#aaa' : '#ccc'
-  const tabBarBg = theme === 'dark' ? '#121212' : '#fff'
-
   return (
-    <Tab.Navigator screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarIcon: ({ focused, color, size }) => {
-        let iconName
-        if (route.name === 'Dashboard') {
-          iconName = focused ? 'view-dashboard' : 'view-dashboard-outline'
-        } else if (route.name === 'Messages') {
-          iconName = focused ? 'email' : 'email-outline'
-        } else if (route.name === 'Profile') {
-          iconName = focused ? 'account' : 'account-outline'
-        }
-        return <MaterialCommunityIcons name={iconName} size={size} color={color} />
-      },
-      tabBarActiveTintColor: activeColor,
-      tabBarInactiveTintColor: inactiveColor,
-      tabBarStyle: { backgroundColor: tabBarBg },
-    })}>
-      <Tab.Screen name="Dashboard" options={{ title: 'Dashboard' }}>
-        {props => <WorkerDashboardScreen {...props} user={user} profile={profile} theme={theme} />}
+    <Tab.Navigator screenOptions={baseScreenOptions}>
+      <Tab.Screen name="Dashboard">
+        {props => (
+          <WorkerDashboardScreen {...props} user={user} profile={profile} theme={theme} />
+        )}
       </Tab.Screen>
-      <Tab.Screen name="Messages" options={{ title: 'Messages' }}>
-        {props => <MessagesScreen {...props} user={user} profile={profile} theme={theme} />}
+
+      <Tab.Screen name="Messages">
+        {props => (
+          <MessagesScreen {...props} user={user} profile={profile} theme={theme} />
+        )}
       </Tab.Screen>
-      <Tab.Screen name="Profile" options={{ title: 'Profile' }}>
-        {props => <ProfileScreen {...props} user={user} profile={profile} theme={theme} onThemeChange={onThemeChange} onProfileUpdate={onProfileUpdate} />}
+
+      <Tab.Screen name="Profile">
+        {props => (
+          <ProfileScreen
+            {...props}
+            user={user}
+            profile={profile}
+            theme={theme}
+            onThemeChange={onThemeChange}
+            onProfileUpdate={onProfileUpdate}
+          />
+        )}
       </Tab.Screen>
     </Tab.Navigator>
   )
@@ -148,52 +183,50 @@ export default function App() {
   }
 
   useEffect(() => {
-    console.log("[Auth] Starting Auth listener...");
+    console.log('[Auth] Starting Auth listener...')
     const unsubscribe = onAuthStateChanged(async authUser => {
       if (authUser) {
-        console.log(`[Auth] User detected: ${authUser.email} (UID: ${authUser.uid})`);
+        console.log(`[Auth] User detected: ${authUser.email} (UID: ${authUser.uid})`)
         setUser(authUser)
-        
-        // Check cache first to speed up entry
-        console.log("[Profile] Checking local cache...");
+
+        console.log('[Profile] Checking local cache...')
         const cachedProfile = await AsyncStorage.getItem(`profile_${authUser.uid}`)
         if (cachedProfile) {
-          console.log("[Profile] Found cached profile, setting UI...");
+          console.log('[Profile] Found cached profile, setting UI...')
           setProfile(JSON.parse(cachedProfile))
           setLoading(false)
         } else {
-          console.log("[Profile] No cached profile found.");
+          console.log('[Profile] No cached profile found.')
         }
-        
+
         try {
-          console.log("[Profile] Fetching fresh profile from Firebase...");
+          console.log('[Profile] Fetching fresh profile from Firebase...')
           const profileDoc = await fetchUserProfile(authUser.uid)
           if (profileDoc) {
-            console.log(`[Profile] Fetch successful! Role: ${profileDoc.role}`);
+            console.log(`[Profile] Fetch successful! Role: ${profileDoc.role}`)
             setProfile(profileDoc)
             await AsyncStorage.setItem(`profile_${authUser.uid}`, JSON.stringify(profileDoc))
           } else {
-            console.warn("[Profile] Profile document does not exist in Firestore.");
-            // Default to worker if doc doesn't exist
+            console.warn('[Profile] Profile document does not exist in Firestore.')
             setProfile({ name: authUser.email, role: 'worker' })
           }
         } catch (e) {
-          console.error("[Profile] Fetch error:", e.message);
-          // If offline and no cache, let them in as worker for now so they aren't stuck
+          console.error('[Profile] Fetch error:', e.message)
           if (!profile) {
-            console.log("[Profile] No cache and fetch failed. Defaulting to worker view to avoid stuck screen.");
+            console.log('[Profile] No cache and fetch failed. Defaulting to worker view to avoid stuck screen.')
             setProfile({ name: authUser.email, role: 'worker' })
           }
         } finally {
           setLoading(false)
         }
       } else {
-        console.log("[Auth] No user signed in.");
+        console.log('[Auth] No user signed in.')
         setUser(null)
         setProfile(null)
         setLoading(false)
       }
     })
+
     return unsubscribe
   }, [])
 
@@ -211,7 +244,16 @@ export default function App() {
         {user ? (
           <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="MainTabs">
-              {props => <AppTabs {...props} user={user} profile={profile} theme={theme} onThemeChange={handleThemeChange} onProfileUpdate={handleProfileUpdate} />}
+              {props => (
+                <AppTabs
+                  {...props}
+                  user={user}
+                  profile={profile}
+                  theme={theme}
+                  onThemeChange={handleThemeChange}
+                  onProfileUpdate={handleProfileUpdate}
+                />
+              )}
             </Stack.Screen>
             <Stack.Screen name="Members">
               {props => <MembersScreen {...props} theme={theme} />}
