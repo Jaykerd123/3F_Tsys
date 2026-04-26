@@ -1,12 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal, Image } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { subscribeMessages, sendMessage } from '../../services/firebase'
+import { subscribeMessages, sendMessage, fetchUsers } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MessagesScreen({ user, profile, theme = 'light', navigation }) {
   const insets = useSafeAreaInsets()
   const [messages, setMessages] = useState([])
+  const [users, setUsers] = useState([])
   const [draft, setDraft] = useState('')
   const [isKeyboardVisible, setKeyboardVisible] = useState(false)
   const [isTypingModalVisible, setTypingModalVisible] = useState(false)
@@ -30,8 +31,14 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
 
   useEffect(() => {
     const unsubscribe = subscribeMessages(setMessages)
+    fetchUsers().then(setUsers).catch(console.error)
     return unsubscribe
   }, [])
+
+  const userMap = users.reduce((map, u) => {
+    map[u.id] = u
+    return map
+  }, {})
 
   useEffect(() => {
     const showSub = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', () => setKeyboardVisible(true))
@@ -73,7 +80,11 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
       <View style={[styles.messageContainer, isMe ? styles.myMessage : styles.theirMessage]}>
         {!isMe && (
           <View style={[styles.avatar, { backgroundColor: isDark ? '#232323' : '#f1f3f5', borderColor: isDark ? '#2a2a2a' : '#eee' }]}> 
-            <Text style={[styles.avatarText, { color: isDark ? '#ddd' : '#666' }]}>{item.userName ? item.userName[0].toUpperCase() : '?'}</Text>
+            {userMap[item.userId]?.pfp ? (
+              <Image source={{ uri: userMap[item.userId].pfp }} style={{ width: '100%', height: '100%', borderRadius: 999 }} />
+            ) : (
+              <Text style={[styles.avatarText, { color: isDark ? '#ddd' : '#666' }]}>{item.userName ? item.userName[0].toUpperCase() : '?'}</Text>
+            )}
           </View>
         )}
         <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, { backgroundColor: isMe ? colors.bubbleMe : colors.bubbleThem }]}> 

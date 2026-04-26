@@ -83,8 +83,7 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
+        allowsEditing: false,
         quality: 0.3,
         base64: true,
       });
@@ -97,6 +96,7 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
         if (typeof onProfileUpdate === 'function') {
           onProfileUpdate({ pfp: base64Img })
         }
+        Alert.alert('Looking Good!', 'Your profile picture was automatically saved and updated.')
       }
     } catch (error) {
       Alert.alert('Error', error.message)
