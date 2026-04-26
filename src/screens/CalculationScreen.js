@@ -12,6 +12,8 @@ export default function CalculationScreen({ theme = 'light' }) {
   const [hourlyRate, setHourlyRate] = useState('20')
   const [results, setResults] = useState(null)
   const [calculating, setCalculating] = useState(false)
+  const [filteredLogs, setFilteredLogs] = useState([])
+  const [isDetailsVisible, setDetailsVisible] = useState(false)
   const isDark = theme === 'dark'
   const colors = {
     background: isDark ? '#121212' : '#f8f9fa',
@@ -77,6 +79,7 @@ export default function CalculationScreen({ theme = 'light' }) {
       setCalculating(true)
       const logs = await fetchTimeLogsByRange(startStr, endStr)
       const filtered = logs.filter(log => log.userId === selectedUser.id && log.timeOut)
+      setFilteredLogs(filtered)
       
       let totalHours = 0
       filtered.forEach(log => {
@@ -209,11 +212,86 @@ export default function CalculationScreen({ theme = 'light' }) {
                     <Text style={styles.resultLabel}>Gross Salary:</Text>
                     <Text style={styles.salaryValue}>₱{results.salary}</Text>
                   </View>
+                  
+                  <Pressable style={styles.detailsBtn} onPress={() => setDetailsVisible(true)}>
+                    <MaterialCommunityIcons name="format-list-bulleted" size={20} color="#007AFF" />
+                    <Text style={styles.detailsBtnText}>Show More Details</Text>
+                  </Pressable>
                 </View>
               )}
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* Details Modal */}
+      <Modal
+        visible={isDetailsVisible}
+        animationType="slide"
+        onRequestClose={() => setDetailsVisible(false)}
+      >
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Pressable style={{ marginRight: 15 }} onPress={() => setDetailsVisible(false)}>
+                <MaterialCommunityIcons name="arrow-left" size={28} color={colors.text} />
+              </Pressable>
+              <View>
+                <Text style={[styles.title, { color: colors.text, fontSize: 22 }]}>Time Logs</Text>
+                <Text style={[styles.subtitle, { color: colors.secondary }]}>{selectedUser?.name}</Text>
+              </View>
+            </View>
+          </View>
+          
+          <FlatList
+            data={filteredLogs}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="text-box-remove-outline" size={60} color={colors.secondary} />
+                <Text style={[styles.emptyText, { color: colors.secondary }]}>No completed time logs found.</Text>
+              </View>
+            }
+            renderItem={({ item }) => {
+              const start = new Date(item.timeIn);
+              const end = new Date(item.timeOut);
+              const duration = Math.max(0, (end - start) / 3600000).toFixed(2);
+
+              return (
+                <View style={[styles.logCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                  <View style={styles.logHeader}>
+                    <View style={styles.logDateContainer}>
+                      <MaterialCommunityIcons name="calendar-range" size={20} color="#666" />
+                      <Text style={[styles.logDate, { color: colors.text }]}>
+                        {start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={styles.logDurationBadge}>
+                      <Text style={styles.logDurationText}>{duration}h</Text>
+                    </View>
+                  </View>
+
+                  <View style={[styles.logTimes, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    <View style={styles.timeInfo}>
+                      <Text style={[styles.timeLabel, { color: colors.secondary }]}>Time In</Text>
+                      <Text style={[styles.timeValue, { color: colors.text }]}>
+                        {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                    <View style={styles.timeDivider} />
+                    <View style={styles.timeInfo}>
+                      <Text style={[styles.timeLabel, { color: colors.secondary }]}>Time Out</Text>
+                      <Text style={[styles.timeValue, { color: colors.text }]}>
+                        {end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            }}
+          />
+        </SafeAreaView>
       </Modal>
 
       <DateTimePickerModal
@@ -492,5 +570,78 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#007AFF',
+  },
+  detailsBtn: {
+    marginTop: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,122,255,0.2)',
+  },
+  detailsBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginLeft: 8,
+  },
+  logCard: {
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+  },
+  logHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logDateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logDate: {
+    fontSize: 15,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  logDurationBadge: {
+    backgroundColor: '#F0F7FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  logDurationText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  logTimes: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 12,
+    padding: 12,
+  },
+  timeInfo: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  timeDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: '#ddd',
+  },
+  timeLabel: {
+    fontSize: 11,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  timeValue: {
+    fontSize: 15,
+    fontWeight: '700',
   },
 })

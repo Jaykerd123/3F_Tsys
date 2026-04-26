@@ -56,10 +56,12 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
     const isSystem = item.system
 
     if (isSystem) {
+      const messageDate = new Date(item.createdAt?.seconds ? item.createdAt.seconds * 1000 : new Date())
+      const dateString = messageDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
       return (
         <View style={[styles.systemMessageContainer, { opacity: isDark ? 0.7 : 1 }]}> 
           <View style={[styles.systemMessageLine, { backgroundColor: colors.border }]} />
-          <Text style={[styles.systemMessageText, { color: colors.secondary }]}>{item.text}</Text>
+          <Text style={[styles.systemMessageText, { color: colors.secondary }]}>{item.text} • {dateString}</Text>
           <View style={[styles.systemMessageLine, { backgroundColor: colors.border }]} />
         </View>
       )
@@ -107,9 +109,9 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
       />
 
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 60}
-        style={[styles.keyboardAvoid, { marginBottom: isKeyboardVisible ? 0 : 80 }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+        style={[styles.keyboardAvoid, Platform.OS === 'ios' ? { marginBottom: isKeyboardVisible ? 0 : 80 } : { marginBottom: 80 }]}
       >
         <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
           <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}> 
