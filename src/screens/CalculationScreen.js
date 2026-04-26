@@ -166,22 +166,22 @@ export default function CalculationScreen({ theme = 'light' }) {
                 <Pressable style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setStartPickerVisibility(true)}>
                   <MaterialCommunityIcons name="calendar-import" size={20} color="#007AFF" />
                   <View style={styles.dateTextWrapper}>
-                    <Text style={styles.dateLabel}>From</Text>
-                    <Text style={styles.dateValue}>{startDate.toLocaleDateString()}</Text>
+                    <Text style={[styles.dateLabel, { color: colors.secondary }]}>From</Text>
+                    <Text style={[styles.dateValue, { color: colors.text }]}>{startDate.toLocaleDateString()}</Text>
                   </View>
                 </Pressable>
 
                 <Pressable style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setEndPickerVisibility(true)}>
                   <MaterialCommunityIcons name="calendar-export" size={20} color="#FF3B30" />
                   <View style={styles.dateTextWrapper}>
-                    <Text style={styles.dateLabel}>To</Text>
-                    <Text style={styles.dateValue}>{endDate.toLocaleDateString()}</Text>
+                    <Text style={[styles.dateLabel, { color: colors.secondary }]}>To</Text>
+                    <Text style={[styles.dateValue, { color: colors.text }]}>{endDate.toLocaleDateString()}</Text>
                   </View>
                 </Pressable>
               </View>
 
               <Text style={[styles.inputLabel, { color: colors.secondary }]}>Hourly Rate (₱)</Text>
-              <View style={styles.rateInputWrapper}>
+              <View style={[styles.rateInputWrapper, { backgroundColor: colors.rateInput, borderColor: colors.border }]}>
                 <Text style={[styles.rateSymbol, { color: colors.secondary }]}>₱</Text>
                 <TextInput
                   style={[styles.rateInput, { backgroundColor: colors.rateInput, color: colors.text, borderColor: colors.border }]}
@@ -297,6 +297,8 @@ export default function CalculationScreen({ theme = 'light' }) {
       <DateTimePickerModal
         isVisible={isStartPickerVisible}
         mode="date"
+        isDarkModeEnabled={isDark}
+        themeVariant={isDark ? "dark" : "light"}
         onConfirm={handleConfirmStart}
         onCancel={() => setStartPickerVisibility(false)}
         date={startDate}
@@ -305,6 +307,8 @@ export default function CalculationScreen({ theme = 'light' }) {
       <DateTimePickerModal
         isVisible={isEndPickerVisible}
         mode="date"
+        isDarkModeEnabled={isDark}
+        themeVariant={isDark ? "dark" : "light"}
         onConfirm={handleConfirmEnd}
         onCancel={() => setEndPickerVisibility(false)}
         date={endDate}

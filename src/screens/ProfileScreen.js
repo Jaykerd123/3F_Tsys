@@ -1,18 +1,21 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView, Image, ActivityIndicator } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout, updateUserProfile, subscribeUserLogs, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function ProfileScreen({ user, profile, theme = 'light', onThemeChange, onProfileUpdate }) {
   const [name, setName] = useState(profile?.name || '')
+  const [pfp, setPfp] = useState(profile?.pfp || null)
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(theme === 'dark')
 
   useEffect(() => {
     setName(profile?.name || '')
-  }, [profile?.name])
+    setPfp(profile?.pfp || null)
+  }, [profile?.name, profile?.pfp])
 
   useEffect(() => {
     setDarkMode(theme === 'dark')
@@ -76,6 +79,32 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
     }
   }
 
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.3,
+        base64: true,
+      });
+
+      if (!result.canceled) {
+        setLoading(true)
+        const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`
+        await updateUserProfile(user.uid, { pfp: base64Img })
+        setPfp(base64Img)
+        if (typeof onProfileUpdate === 'function') {
+          onProfileUpdate({ pfp: base64Img })
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleDeleteLog = async id => {
     Alert.alert('Delete Session', 'Remove this time log from your history?', [
       { text: 'Cancel', style: 'cancel' },
@@ -93,10 +122,14 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
     <View style={styles.header}>
       <View style={styles.avatarContainer}>
         <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{profile?.name ? profile.name[0].toUpperCase() : '?'}</Text>
+          {pfp ? (
+            <Image source={{ uri: pfp }} style={{ width: '100%', height: '100%', borderRadius: 45 }} />
+          ) : (
+             <Text style={styles.avatarText}>{profile?.name ? profile.name[0].toUpperCase() : '?'}</Text>
+          )}
         </View>
-        <Pressable style={styles.editAvatarBtn}>
-          <MaterialCommunityIcons name="camera-outline" size={16} color="#fff" />
+        <Pressable style={styles.editAvatarBtn} onPress={pickImage} disabled={loading}>
+          {loading ? <ActivityIndicator size="small" color="#fff" /> : <MaterialCommunityIcons name="camera-outline" size={16} color="#fff" />}
         </Pressable>
       </View>
       <Text style={[styles.profileName, { color: colors.text }]}>{profile?.name || 'User'}</Text>
@@ -223,7 +256,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 100,
   },
   header: {
     alignItems: 'center',

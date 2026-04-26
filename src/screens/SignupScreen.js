@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ActivityIndicator, View, Text, TextInput, StyleSheet, Alert, Pressable } from 'react-native'
+import { ActivityIndicator, View, Text, TextInput, StyleSheet, Alert, Pressable, KeyboardAvoidingView, Platform, ScrollView, TouchableWithoutFeedback, Keyboard } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 import { signUp } from '../../services/firebase'
@@ -28,7 +28,13 @@ export default function SignupScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.screenBackground}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={{ flex: 1 }}
+      >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView contentContainerStyle={styles.scrollGrow} keyboardShouldPersistTaps="handled">
+            <View style={styles.screenBackground}>
         <View style={styles.card}>
           <View style={styles.header}>
             <View style={styles.logoContainer}>
@@ -96,7 +102,10 @@ export default function SignupScreen({ navigation }) {
             </Pressable>
           </View>
         </View>
-      </View>
+            </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
@@ -105,6 +114,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#e8effb',
+  },
+  scrollGrow: {
+    flexGrow: 1,
   },
   screenBackground: {
     flex: 1,

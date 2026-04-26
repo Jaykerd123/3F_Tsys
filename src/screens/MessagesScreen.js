@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal } from 'react-native'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { subscribeMessages, sendMessage } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MessagesScreen({ user, profile, theme = 'light', navigation }) {
+  const insets = useSafeAreaInsets()
   const [messages, setMessages] = useState([])
   const [draft, setDraft] = useState('')
   const [isKeyboardVisible, setKeyboardVisible] = useState(false)
+  const [isTypingModalVisible, setTypingModalVisible] = useState(false)
   const flatListRef = useRef(null)
   const isDark = theme === 'dark'
   const colors = {
@@ -88,52 +90,94 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
-      <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}> 
-        <Text style={[styles.title, { color: colors.text }]}>3F Chat</Text>
-        <Pressable style={[styles.membersButton, { backgroundColor: isDark ? '#0f3a6f' : '#E8F2FF' }]} onPress={() => navigation.navigate('Members')}> 
-          <MaterialCommunityIcons name="account-group" size={18} color={isDark ? '#D6E7FF' : '#007AFF'} />
-          <Text style={[styles.membersButtonText, { color: isDark ? '#D6E7FF' : '#007AFF' }]}>Members</Text>
-        </Pressable>
-      </View>
-      
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={item => item.id}
-        renderItem={renderMessage}
-        contentContainerStyle={[styles.listContent, { paddingBottom: 90 }]}
-        style={styles.list}
-        keyboardShouldPersistTaps="handled"
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd()}
-      />
-
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
-        style={[styles.keyboardAvoid, Platform.OS === 'ios' ? { marginBottom: isKeyboardVisible ? 0 : 80 } : { marginBottom: 80 }]}
+        style={[styles.keyboardAvoid, { paddingBottom: isKeyboardVisible ? 0 : (78 + insets.bottom) }]}
       >
-        <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
-          <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}> 
-            <TextInput
-              style={[styles.input, { color: colors.text }]}
-              placeholder="Type a message..."
-              value={draft}
-              onChangeText={setDraft}
-              multiline
-              placeholderTextColor={colors.placeholder}
-            />
-            <Pressable 
-              style={[styles.sendButton, !draft.trim() && styles.sendButtonDisabled]} 
-              onPress={handleSend}
-              disabled={!draft.trim()}
-            >
-              <MaterialCommunityIcons name="send" size={24} color="#fff" />
+        <View style={{ flex: 1 }}>
+          <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}> 
+            <Text style={[styles.title, { color: colors.text }]}>3F Chat</Text>
+            <Pressable style={[styles.membersButton, { backgroundColor: isDark ? '#0f3a6f' : '#E8F2FF' }]} onPress={() => navigation.navigate('Members')}> 
+              <MaterialCommunityIcons name="account-group" size={18} color={isDark ? '#D6E7FF' : '#007AFF'} />
+              <Text style={[styles.membersButtonText, { color: isDark ? '#D6E7FF' : '#007AFF' }]}>Members</Text>
+            </Pressable>
+          </View>
+          
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            keyExtractor={item => item.id}
+            renderItem={renderMessage}
+            contentContainerStyle={[styles.listContent, { paddingBottom: 20 }]}
+            style={styles.list}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+          />
+
+          <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
+            <Pressable style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setTypingModalVisible(true)}> 
+              <Text style={[{ flex: 1, paddingVertical: 8, fontSize: 15, color: draft ? colors.text : colors.placeholder }]} numberOfLines={1}>
+                {draft || "Tap to compose message..."}
+              </Text>
+              <Pressable 
+                style={[styles.sendButton, !draft.trim() && styles.sendButtonDisabled]} 
+                onPress={handleSend}
+                disabled={!draft.trim()}
+              >
+                <MaterialCommunityIcons name="send" size={24} color="#fff" />
+              </Pressable>
             </Pressable>
           </View>
         </View>
       </KeyboardAvoidingView>
 
+      <Modal
+        visible={isTypingModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setTypingModalVisible(false)}
+      >
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={styles.modalOverlay}
+        >
+          <Pressable style={styles.modalBackdrop} onPress={() => setTypingModalVisible(false)} />
+          <View style={[styles.modalContent, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Compose Message</Text>
+              <Pressable style={styles.closeButton} onPress={() => setTypingModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={22} color={colors.secondary} />
+              </Pressable>
+            </View>
+            <TextInput
+              style={[styles.modalInput, { color: colors.text, backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]}
+              placeholder="Start typing..."
+              placeholderTextColor={colors.placeholder}
+              value={draft}
+              onChangeText={setDraft}
+              multiline
+              autoFocus
+              textAlignVertical="top"
+            />
+            <View style={styles.modalFooter}>
+              <Text style={[styles.charCount, { color: colors.secondary }]}>{draft.length} characters</Text>
+              <Pressable 
+                style={[styles.modalSendModern, !draft.trim() && styles.modalSendDisabled]}
+                onPress={() => {
+                  handleSend();
+                  setTypingModalVisible(false);
+                }}
+                disabled={!draft.trim()}
+              >
+                <Text style={styles.modalSendText}>Send Message</Text>
+                <MaterialCommunityIcons name="send" size={16} color="#fff" style={{ marginLeft: 6 }} />
+              </Pressable>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -308,6 +352,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   keyboardAvoid: {
+    flex: 1,
     width: '100%',
   },
   sendButton: {
@@ -354,5 +399,74 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     textTransform: 'capitalize',
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    minHeight: 280,
+    elevation: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  closeButton: {
+    padding: 6,
+    backgroundColor: 'rgba(150,150,150,0.1)',
+    borderRadius: 20,
+  },
+  modalInput: {
+    flex: 1,
+    minHeight: 120,
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 16,
+    lineHeight: 24,
+    borderWidth: 1,
+    marginBottom: 16,
+  },
+  modalFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  charCount: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  modalSendModern: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+  },
+  modalSendText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
   },
 })

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, Pressable, StyleSheet, FlatList, TextInput, Alert, ActivityIndicator } from 'react-native'
+import { View, Text, Pressable, StyleSheet, FlatList, TextInput, Alert, ActivityIndicator, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { subscribeUserLogs, createTimeLog, updateTimeLog, sendSystemMessage, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
@@ -93,9 +93,18 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
         <Text style={[styles.userName, { color: colors.text }]}>{profile.name || 'Worker'}</Text>
         <Text style={[styles.roleLabel, { color: colors.secondary }]}>{profile.role ? `${profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}` : 'Worker'}</Text>
       </View>
-      <View style={[styles.statusBadge, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-        <View style={[styles.statusDot, { backgroundColor: activeLog ? '#4CD964' : '#FF3B30' }]} />
-        <Text style={[styles.statusText, { color: colors.secondary }]}>{activeLog ? 'On Clock' : 'Off Clock'}</Text>
+      <View style={styles.headerRight}>
+        <View style={[styles.dashboardAvatar, { backgroundColor: isDark ? '#16212d' : '#F0F7FF' }]}>
+          {profile.pfp ? (
+            <Image source={{ uri: profile.pfp }} style={{ width: '100%', height: '100%', borderRadius: 999 }} />
+          ) : (
+            <Text style={[styles.dashboardAvatarText, { color: '#007AFF' }]}>{(profile.name || 'W')[0].toUpperCase()}</Text>
+          )}
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+          <View style={[styles.statusDot, { backgroundColor: activeLog ? '#4CD964' : '#FF3B30' }]} />
+          <Text style={[styles.statusText, { color: colors.secondary }]}>{activeLog ? 'On Clock' : 'Off Clock'}</Text>
+        </View>
       </View>
     </View>
   )
@@ -248,7 +257,7 @@ const styles = StyleSheet.create({
   listContent: {
     paddingTop: 20,
     paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingBottom: 100,
   },
   header: {
     flexDirection: 'row',
@@ -264,6 +273,21 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '800',
     color: '#1a1a1a',
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  dashboardAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  dashboardAvatarText: {
+    fontSize: 22,
+    fontWeight: '800',
   },
   statusBadge: {
     flexDirection: 'row',
