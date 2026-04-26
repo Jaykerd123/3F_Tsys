@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView, ActivityIndicator, Modal } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView, ActivityIndicator, Modal, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { fetchUsers, fetchTimeLogsByRange } from '../../services/firebase'
+import { subscribeUsers, fetchTimeLogsByRange } from '../../services/firebase'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 import DateTimePickerModal from "react-native-modal-datetime-picker"
@@ -36,21 +36,13 @@ export default function CalculationScreen({ theme = 'light' }) {
   const [isEndPickerVisible, setEndPickerVisibility] = useState(false)
   const [isModalVisible, setModalVisible] = useState(false)
 
-  const loadUsers = async () => {
-    try {
-      console.log("[Payroll] Fetching users list...");
-      const allUsers = await fetchUsers()
+  useEffect(() => {
+    const unsubscribe = subscribeUsers(allUsers => {
       const workers = allUsers.filter(u => u.role !== 'admin')
       setUsers(workers)
-      await AsyncStorage.setItem('cached_workers', JSON.stringify(workers))
-    } catch (error) {
-      const cached = await AsyncStorage.getItem('cached_workers')
-      if (cached) setUsers(JSON.parse(cached))
-    }
-  }
-
-  useEffect(() => {
-    loadUsers()
+      AsyncStorage.setItem('cached_workers', JSON.stringify(workers)).catch(() => {})
+    })
+    return unsubscribe
   }, [])
 
   const handleSelectUser = (user) => {
@@ -102,7 +94,11 @@ export default function CalculationScreen({ theme = 'light' }) {
   const renderWorkerItem = ({ item }) => (
     <Pressable style={[styles.workerCard, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => handleSelectUser(item)}>
       <View style={[styles.workerAvatar, { backgroundColor: colors.avatarBg }]}> 
-        <Text style={[styles.avatarText, { color: colors.text }]}>{item.name ? item.name[0].toUpperCase() : '?'}</Text>
+        {item.pfp ? (
+          <Image source={{ uri: item.pfp }} style={{ width: '100%', height: '100%', borderRadius: 999 }} />
+        ) : (
+          <Text style={[styles.avatarText, { color: colors.text }]}>{item.name ? item.name[0].toUpperCase() : '?'}</Text>
+        )}
       </View>
       <View style={styles.workerInfo}>
         <Text style={[styles.workerName, { color: colors.text }]}>{item.name}</Text>
@@ -119,9 +115,6 @@ export default function CalculationScreen({ theme = 'light' }) {
           <Text style={[styles.title, { color: colors.text }]}>Payroll</Text>
           <Text style={[styles.subtitle, { color: colors.secondary }]}>Select a worker to compute</Text>
         </View>
-        <Pressable style={styles.refreshBtn} onPress={loadUsers}>
-          <MaterialCommunityIcons name="refresh" size={24} color="#007AFF" />
-        </Pressable>
       </View>
 
       <FlatList
@@ -156,7 +149,11 @@ export default function CalculationScreen({ theme = 'light' }) {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={[styles.selectedWorkerHeader, { backgroundColor: colors.card }]}> 
                 <View style={[styles.smallAvatar, { backgroundColor: colors.avatarBg }]}> 
-                  <Text style={[styles.smallAvatarText, { color: colors.text }]}>{selectedUser?.name?.[0].toUpperCase()}</Text>
+                  {selectedUser?.pfp ? (
+                     <Image source={{ uri: selectedUser.pfp }} style={{ width: '100%', height: '100%', borderRadius: 999 }} />
+                  ) : (
+                     <Text style={[styles.smallAvatarText, { color: colors.text }]}>{selectedUser?.name?.[0].toUpperCase()}</Text>
+                  )}
                 </View>
                 <Text style={[styles.selectedWorkerName, { color: colors.text }]}>{selectedUser?.name}</Text>
               </View>

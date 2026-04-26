@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, SectionList, ActivityIndicator, Pressable, Modal, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { subscribeAllLogs, fetchUsers } from '../../services/firebase'
+import { subscribeAllLogs, subscribeUsers } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function AdminDashboardScreen({ theme = 'light', profile }) {
@@ -35,15 +35,10 @@ export default function AdminDashboardScreen({ theme = 'light', profile }) {
   }, [])
 
   useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        const allUsers = await fetchUsers()
-        setUsers(allUsers)
-      } catch (error) {
-        console.error('[AdminDashboard] Failed to load users:', error)
-      }
-    }
-    loadUsers()
+    const unsubscribe = subscribeUsers(allUsers => {
+      setUsers(allUsers)
+    })
+    return unsubscribe
   }, [])
 
   const userMap = users.reduce((map, user) => {
@@ -126,7 +121,7 @@ export default function AdminDashboardScreen({ theme = 'light', profile }) {
   const renderHeader = () => (
     <View style={[styles.header, { borderBottomColor: colors.divider }]}> 
       <View style={styles.headerLeft}>
-        <Text style={[styles.companyTitle, { color: colors.badgeBg }]}>3F Tsys</Text>
+        <Text style={[styles.companyTitle, { color: colors.badgeBg }]}>3F TIME TRACKER</Text>
         <Text style={[styles.userTitle, { color: colors.text }]}>{profile?.name ? `${profile.name}` : 'Admin'}</Text>
         <Text style={[styles.subtitle, { color: colors.secondary }]}>System Overview</Text>
       </View>
@@ -191,6 +186,7 @@ export default function AdminDashboardScreen({ theme = 'light', profile }) {
       <SectionList
         sections={userStatusSections}
         keyExtractor={item => item.id}
+        extraData={activeLogsMap}
         renderItem={renderUserItem}
         renderSectionHeader={({ section }) => (
           <Text style={[styles.sectionHeaderTitle, { color: section.active ? '#10b981' : colors.secondary }]}>{section.title}</Text>

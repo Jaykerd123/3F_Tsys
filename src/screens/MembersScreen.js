@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { View, Text, SectionList, StyleSheet, ActivityIndicator, Pressable, Platform, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { fetchUsers } from '../../services/firebase'
+import { subscribeUsers } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MembersScreen({ theme = 'light', navigation }) {
@@ -20,25 +20,17 @@ export default function MembersScreen({ theme = 'light', navigation }) {
   }
 
   useEffect(() => {
-    let active = true
-    const loadMembers = async () => {
-      try {
-        const users = await fetchUsers()
-        if (active) {
-          setMembers(users)
-        }
-      } catch (err) {
-        if (active) {
-          setError(err.message || 'Unable to load members.')
-        }
-      } finally {
-        if (active) setLoading(false)
+    const unsubscribe = subscribeUsers(
+      (users) => {
+        setMembers(users)
+        setLoading(false)
+      },
+      (err) => {
+        setError(err.message || 'Unable to load members.')
+        setLoading(false)
       }
-    }
-    loadMembers()
-    return () => {
-      active = false
-    }
+    )
+    return () => unsubscribe()
   }, [])
 
   const groupedMembers = useMemo(() => {

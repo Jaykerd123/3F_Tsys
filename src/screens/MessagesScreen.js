@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react'
-import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal, Image } from 'react-native'
+import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal, Image, ActivityIndicator } from 'react-native'
+import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { subscribeMessages, sendMessage, fetchUsers } from '../../services/firebase'
+import { subscribeMessages, sendMessage, subscribeUsers } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MessagesScreen({ user, profile, theme = 'light', navigation }) {
@@ -11,6 +12,7 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
   const [draft, setDraft] = useState('')
   const [isKeyboardVisible, setKeyboardVisible] = useState(false)
   const [isTypingModalVisible, setTypingModalVisible] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const flatListRef = useRef(null)
   const isDark = theme === 'dark'
   const colors = {
@@ -30,9 +32,12 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
   }
 
   useEffect(() => {
-    const unsubscribe = subscribeMessages(setMessages)
-    fetchUsers().then(setUsers).catch(console.error)
-    return unsubscribe
+    const unsubMessages = subscribeMessages(setMessages)
+    const unsubUsers = subscribeUsers(setUsers)
+    return () => {
+      unsubMessages()
+      unsubUsers()
+    }
   }, [])
 
   const userMap = users.reduce((map, u) => {
@@ -60,17 +65,40 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
     }
   }
 
+  const handlePickSticker = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: false,
+        quality: 0.1,
+        base64: true,
+      })
+
+      if (!result.canceled) {
+        setIsUploading(true)
+        const base64Img = `data:image/jpeg;base64,${result.assets[0].base64}`
+        await sendMessage(user.uid, profile.name || user.email, '', base64Img)
+        setTimeout(() => flatListRef.current?.scrollToEnd(), 100)
+      }
+    } catch (error) {
+      Alert.alert('Picker Error', error.message)
+    } finally {
+      setIsUploading(false)
+    }
+  }
+
   const renderMessage = ({ item }) => {
     const isMe = item.userId === user.uid
     const isSystem = item.system
 
     if (isSystem) {
       const messageDate = new Date(item.createdAt?.seconds ? item.createdAt.seconds * 1000 : new Date())
-      const dateString = messageDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+      const dateString = messageDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      const timeString = messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       return (
         <View style={[styles.systemMessageContainer, { opacity: isDark ? 0.7 : 1 }]}> 
           <View style={[styles.systemMessageLine, { backgroundColor: colors.border }]} />
-          <Text style={[styles.systemMessageText, { color: colors.secondary }]}>{item.text} • {dateString}</Text>
+          <Text style={[styles.systemMessageText, { color: colors.secondary }]}>{item.text} • {dateString} at {timeString}</Text>
           <View style={[styles.systemMessageLine, { backgroundColor: colors.border }]} />
         </View>
       )
@@ -87,12 +115,22 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
             )}
           </View>
         )}
-        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, { backgroundColor: isMe ? colors.bubbleMe : colors.bubbleThem }]}> 
-          {!isMe && <Text style={[styles.userName, { color: isDark ? '#ccc' : '#666' }]}>{item.userName}</Text>}
-          <Text style={[styles.messageText, isMe ? styles.myMessageText : { color: colors.bubbleTextThem }]}> 
-            {item.text}
-          </Text>
-          <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp, !isMe && { color: isDark ? '#bbb' : '#999' }]}> 
+        <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble, { backgroundColor: item.imageUrl && !item.text ? 'transparent' : (isMe ? colors.bubbleMe : colors.bubbleThem), padding: item.imageUrl && !item.text ? 0 : 12, elevation: item.imageUrl && !item.text ? 0 : 1 }]}> 
+          {!isMe && <Text style={[styles.userName, { color: isDark ? '#ccc' : '#666', paddingBottom: item.imageUrl ? 6 : 4 }]}>{item.userName}</Text>}
+          
+          {item.imageUrl && (
+             <View style={[styles.stickerContainer, isMe ? { alignItems: 'flex-end' } : { alignItems: 'flex-start' }]}>
+               <Image source={{ uri: item.imageUrl }} style={styles.stickerImage} resizeMode="cover" />
+             </View>
+          )}
+
+          {item.text ? (
+            <Text style={[styles.messageText, isMe ? styles.myMessageText : { color: colors.bubbleTextThem }]}> 
+              {item.text}
+            </Text>
+          ) : null}
+          
+          <Text style={[styles.timestamp, isMe ? styles.myTimestamp : styles.theirTimestamp, !isMe && { color: isDark ? '#bbb' : '#999' }, item.imageUrl && !item.text && { alignSelf: isMe ? 'flex-end' : 'flex-start', marginTop: 8, color: colors.secondary }]}> 
             {new Date(item.createdAt?.seconds ? item.createdAt.seconds * 1000 : new Date()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
@@ -128,18 +166,23 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
           />
 
           <View style={[styles.inputContainer, { backgroundColor: colors.footer, borderTopColor: colors.border }]}> 
-            <Pressable style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setTypingModalVisible(true)}> 
-              <Text style={[{ flex: 1, paddingVertical: 8, fontSize: 15, color: draft ? colors.text : colors.placeholder }]} numberOfLines={1}>
-                {draft || "Tap to compose message..."}
-              </Text>
-              <Pressable 
-                style={[styles.sendButton, !draft.trim() && styles.sendButtonDisabled]} 
-                onPress={handleSend}
-                disabled={!draft.trim()}
-              >
-                <MaterialCommunityIcons name="send" size={24} color="#fff" />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Pressable style={styles.stickerButton} onPress={handlePickSticker} disabled={isUploading}>
+                {isUploading ? <ActivityIndicator size="small" color="#007AFF" /> : <MaterialCommunityIcons name="sticker-emoji" size={26} color="#007AFF" />}
               </Pressable>
-            </Pressable>
+              <Pressable style={[styles.inputWrapper, { flex: 1, backgroundColor: colors.inputBg, borderColor: colors.inputBorder }]} onPress={() => setTypingModalVisible(true)}> 
+                <Text style={[{ flex: 1, paddingVertical: 8, fontSize: 15, color: draft ? colors.text : colors.placeholder }]} numberOfLines={1}>
+                  {draft || "Tap to compose message..."}
+                </Text>
+                <Pressable 
+                  style={[styles.sendButton, !draft.trim() && styles.sendButtonDisabled]} 
+                  onPress={handleSend}
+                  disabled={!draft.trim()}
+                >
+                  <MaterialCommunityIcons name="send" size={24} color="#fff" />
+                </Pressable>
+              </Pressable>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -377,6 +420,20 @@ const styles = StyleSheet.create({
   },
   sendButtonDisabled: {
     backgroundColor: '#ccc',
+  },
+  stickerButton: {
+    paddingRight: 12,
+    paddingLeft: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stickerContainer: {
+    marginBottom: 6,
+  },
+  stickerImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 16,
   },
   memberRow: {
     flexDirection: 'row',

@@ -88,7 +88,7 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
   const renderHeader = () => (
     <View style={[styles.header, { borderBottomColor: colors.border }]}> 
       <View style={styles.headerLeft}>
-        <Text style={[styles.companyTitle, { color: colors.secondary }]}>3F Tsys</Text>
+        <Text style={[styles.companyTitle, { color: colors.secondary }]}>3F TIME TRACKER</Text>
         <Text style={[styles.greeting, { color: colors.secondary }]}>Welcome back,</Text>
         <Text style={[styles.userName, { color: colors.text }]}>{profile.name || 'Worker'}</Text>
         <Text style={[styles.roleLabel, { color: colors.secondary }]}>{profile.role ? `${profile.role.charAt(0).toUpperCase() + profile.role.slice(1)}` : 'Worker'}</Text>

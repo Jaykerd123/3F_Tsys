@@ -192,14 +192,18 @@ export async function fetchUsers() {
   }
 }
 
-export async function sendMessage(userId, userName, text) {
-  return addDoc(messagesCol, {
+export async function sendMessage(userId, userName, text, imageUrl = null) {
+  const payload = {
     userId,
     userName,
     text,
     system: false,
     createdAt: serverTimestamp(),
-  })
+  }
+  if (imageUrl) {
+    payload.imageUrl = imageUrl
+  }
+  return addDoc(messagesCol, payload)
 }
 
 export async function sendSystemMessage(userName, text) {
@@ -224,4 +228,12 @@ export async function fetchTimeLogsByRange(startDate, endDate) {
   // Sort locally
   docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
   return docs
+}
+
+export function subscribeUsers(callback) {
+  return onSnapshot(usersCol, snapshot => {
+    const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
+    docs.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    callback(docs)
+  })
 }

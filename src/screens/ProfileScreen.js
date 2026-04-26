@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView, Image, ActivityIndicator } from 'react-native'
+import { View, Text, TextInput, Pressable, StyleSheet, FlatList, Alert, ScrollView, Image, ActivityIndicator, Modal } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout, updateUserProfile, subscribeUserLogs, deleteTimeLog } from '../../services/firebase'
@@ -11,6 +11,7 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
   const [logs, setLogs] = useState([])
   const [loading, setLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(theme === 'dark')
+  const [isHistoryModalVisible, setHistoryModalVisible] = useState(false)
 
   useEffect(() => {
     setName(profile?.name || '')
@@ -141,109 +142,127 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
-      <FlatList
-        data={logs}
-        keyExtractor={item => item.id}
-        keyboardShouldPersistTaps="always"
-        keyboardDismissMode="on-drag"
-        contentContainerStyle={styles.listContent}
-        ListHeaderComponent={() => (
-          <>
-            {renderHeader()}
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Settings</Text>
-              <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: colors.secondary }]}>Email Address</Text>
-                  <View style={[styles.disabledInput, { backgroundColor: colors.inputBg }]}> 
-                    <MaterialCommunityIcons name="email-outline" size={20} color={colors.muted} />
-                    <Text style={[styles.disabledInputText, { color: colors.muted }]}>{user.email}</Text>
-                  </View>
-                </View>
-                
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: colors.secondary }]}>Full Name</Text>
-                  <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}> 
-                    <MaterialCommunityIcons name="account-outline" size={20} color={colors.roleText} />
-                    <TextInput 
-                      style={[styles.input, { color: colors.text }]} 
-                      value={name} 
-                      onChangeText={setName} 
-                      placeholder="Enter your name"
-                      placeholderTextColor={colors.secondary}
-                      blurOnSubmit={false}
-                      returnKeyType="done"
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.inputGroup}>
-                  <Text style={[styles.label, { color: colors.secondary }]}>Dark Mode</Text>
-                  <Pressable
-                    style={[styles.themeToggle, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
-                    onPress={toggleDarkMode}
-                  >
-                    <Text style={[styles.themeToggleText, { color: colors.text }]}>{darkMode ? 'Enabled' : 'Disabled'}</Text>
-                    <View style={[styles.themeSwitch, { backgroundColor: darkMode ? '#4CD964' : '#545454' }]}> 
-                      <View style={[styles.themeSwitchThumb, darkMode ? styles.themeSwitchRight : styles.themeSwitchLeft]} />
-                    </View>
-                  </Pressable>
-                </View>
-
-                <Pressable 
-                  style={({ pressed }) => [
-                    styles.saveButton,
-                    pressed && styles.buttonPressed,
-                    loading && styles.buttonDisabled
-                  ]} 
-                  onPress={handleSave}
-                  disabled={loading}
-                >
-                  <Text style={styles.saveButtonText}>Save Changes</Text>
-                </Pressable>
+      <ScrollView contentContainerStyle={styles.listContent}>
+        {renderHeader()}
+        
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Account Settings</Text>
+          <View style={[styles.inputCard, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.secondary }]}>Email Address</Text>
+              <View style={[styles.disabledInput, { backgroundColor: colors.inputBg }]}> 
+                <MaterialCommunityIcons name="email-outline" size={20} color={colors.muted} />
+                <Text style={[styles.disabledInputText, { color: colors.muted }]}>{user.email}</Text>
+              </View>
+            </View>
+            
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.secondary }]}>Full Name</Text>
+              <View style={[styles.inputWrapper, { backgroundColor: colors.inputBg, borderColor: colors.border }]}> 
+                <MaterialCommunityIcons name="account-outline" size={20} color={colors.roleText} />
+                <TextInput 
+                  style={[styles.input, { color: colors.text }]} 
+                  value={name} 
+                  onChangeText={setName} 
+                  placeholder="Enter your name"
+                  placeholderTextColor={colors.secondary}
+                  blurOnSubmit={false}
+                  returnKeyType="done"
+                />
               </View>
             </View>
 
-            <View style={styles.sectionHeader}>
-              <Text style={[styles.sectionTitle, { color: colors.text }]}>Session History</Text>
-              <Text style={[styles.logCount, { color: colors.secondary }]}>{logs.length} Total</Text>
+            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.secondary }]}>Dark Mode</Text>
+              <Pressable
+                style={[styles.themeToggle, { backgroundColor: colors.inputBg, borderColor: colors.border }]}
+                onPress={toggleDarkMode}
+              >
+                <Text style={[styles.themeToggleText, { color: colors.text }]}>{darkMode ? 'Enabled' : 'Disabled'}</Text>
+                <View style={[styles.themeSwitch, { backgroundColor: darkMode ? '#4CD964' : '#545454' }]}> 
+                  <View style={[styles.themeSwitchThumb, darkMode ? styles.themeSwitchRight : styles.themeSwitchLeft]} />
+                </View>
+              </Pressable>
             </View>
-          </>
-        )}
-        renderItem={({ item }) => (
-          <View style={[styles.logItem, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-            <View style={[styles.logIcon, { backgroundColor: isDark ? '#163222' : '#F0FFF4' }]}> 
-              <MaterialCommunityIcons name="clock-check-outline" size={20} color="#4CD964" />
-            </View>
-            <View style={styles.logInfo}>
-              <Text style={[styles.logDate, { color: colors.text }]}> 
-                {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-              </Text>
-              <Text style={[styles.logTime, { color: colors.secondary }]}> 
-                {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                {' - '}
-                {item.timeOut 
-                  ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : 'Active'}
-              </Text>
-            </View>
-            <Pressable style={styles.deleteBtn} onPress={() => handleDeleteLog(item.id)}>
-              <MaterialCommunityIcons name="close-circle-outline" size={22} color="#FF3B30" />
+
+            <Pressable 
+              style={({ pressed }) => [
+                styles.saveButton,
+                pressed && styles.buttonPressed,
+                loading && styles.buttonDisabled
+              ]} 
+              onPress={handleSave}
+              disabled={loading}
+            >
+              <Text style={styles.saveButtonText}>Save Changes</Text>
             </Pressable>
           </View>
-        )}
-        ListFooterComponent={() => (
-          <Pressable style={[styles.logoutButton, { backgroundColor: colors.logoutBg, borderColor: colors.logoutBorder }]} onPress={handleLogout}>
-            <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
-            <Text style={styles.logoutText}>Sign Out</Text>
+        </View>
+
+        {profile?.role !== 'admin' && (
+          <Pressable 
+            style={[styles.historyButton, { backgroundColor: colors.card, borderColor: colors.border }]} 
+            onPress={() => setHistoryModalVisible(true)}
+          >
+            <MaterialCommunityIcons name="history" size={24} color="#007AFF" />
+            <View style={styles.historyBtnInfo}>
+              <Text style={[styles.historyBtnText, { color: colors.text }]}>View Session History</Text>
+              <Text style={[styles.logCount, { color: colors.secondary }]}>{logs.length} Total Sessions</Text>
+            </View>
+            <MaterialCommunityIcons name="chevron-right" size={24} color={colors.secondary} />
           </Pressable>
         )}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: colors.secondary }]}>No sessions found.</Text>
+
+        <Pressable style={[styles.logoutButton, { backgroundColor: colors.logoutBg, borderColor: colors.logoutBorder }]} onPress={handleLogout}>
+          <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
+          <Text style={styles.logoutText}>Sign Out</Text>
+        </Pressable>
+      </ScrollView>
+
+      <Modal visible={isHistoryModalVisible} animationType="slide">
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Pressable onPress={() => setHistoryModalVisible(false)} style={styles.closeBtn}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </Pressable>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Session History</Text>
+            <View style={{ width: 40 }} />
           </View>
-        }
-      />
+          
+          <FlatList
+            data={logs}
+            keyExtractor={item => item.id}
+            contentContainerStyle={styles.listContent}
+            renderItem={({ item }) => (
+              <View style={[styles.logItem, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                <View style={[styles.logIcon, { backgroundColor: isDark ? '#163222' : '#F0FFF4' }]}> 
+                  <MaterialCommunityIcons name="clock-check-outline" size={20} color="#4CD964" />
+                </View>
+                <View style={styles.logInfo}>
+                  <Text style={[styles.logDate, { color: colors.text }]}> 
+                    {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                  </Text>
+                  <Text style={[styles.logTime, { color: colors.secondary }]}> 
+                    {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {' - '}
+                    {item.timeOut 
+                      ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                      : 'Active'}
+                  </Text>
+                </View>
+                <Pressable style={styles.deleteBtn} onPress={() => handleDeleteLog(item.id)}>
+                  <MaterialCommunityIcons name="close-circle-outline" size={22} color="#FF3B30" />
+                </Pressable>
+              </View>
+            )}
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Text style={[styles.emptyText, { color: colors.secondary }]}>No sessions found.</Text>
+              </View>
+            }
+          />
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -501,5 +520,38 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#999',
     fontSize: 14,
+  },
+  historyButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginTop: -8,
+    marginBottom: 8,
+  },
+  historyBtnInfo: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  historyBtnText: {
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  closeBtn: {
+    padding: 8,
   },
 })
