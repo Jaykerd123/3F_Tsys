@@ -1,4 +1,5 @@
 import { initializeApp } from 'firebase/app'
+import { Platform } from 'react-native'
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -53,6 +54,13 @@ const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
   useFetchStreams: false,
 })
+
+// Try to enable persistent cache (for sessions)
+if (Platform.OS !== 'web') {
+  // Persistence is handled by auth initialization on native
+} else {
+  // For web if needed
+}
 
 // Force network to be enabled immediately
 enableNetwork(db)

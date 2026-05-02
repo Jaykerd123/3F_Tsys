@@ -186,6 +186,7 @@ export default function App() {
     console.log('[Auth] Starting Auth listener...')
     let isSubscribed = true;
 
+    // We don't want to show the login screen until we're sure the user is signed out
     const unsubscribe = onAuthStateChanged(async authUser => {
       if (!isSubscribed) return;
 
@@ -193,36 +194,26 @@ export default function App() {
         console.log(`[Auth] User detected: ${authUser.email} (UID: ${authUser.uid})`)
         setUser(authUser)
 
-        console.log('[Profile] Checking local cache...')
+        // Try to load profile from cache first to avoid waiting
         const cachedProfile = await AsyncStorage.getItem(`profile_${authUser.uid}`)
         if (cachedProfile) {
-          console.log('[Profile] Found cached profile, setting UI...')
           setProfile(JSON.parse(cachedProfile))
-          setLoading(false)
+          setLoading(false) // Stop loading immediately if cache exists
         }
 
         try {
-          console.log('[Profile] Fetching fresh profile from Firebase...')
           const profileDoc = await fetchUserProfile(authUser.uid)
           if (profileDoc) {
-            console.log(`[Profile] Fetch successful! Role: ${profileDoc.role}`)
             setProfile(profileDoc)
             await AsyncStorage.setItem(`profile_${authUser.uid}`, JSON.stringify(profileDoc))
-          } else if (!cachedProfile) {
-            console.warn('[Profile] Profile document does not exist in Firestore.')
-            setProfile({ name: authUser.email, role: 'worker' })
           }
         } catch (e) {
-          console.error('[Profile] Fetch error:', e.message)
-          if (!profile && !cachedProfile) {
-            console.log('[Profile] No cache and fetch failed. Defaulting to worker view to avoid stuck screen.')
-            setProfile({ name: authUser.email, role: 'worker' })
-          }
+          console.warn('[Profile] Fetch failed:', e.message)
         } finally {
           setLoading(false)
         }
       } else {
-        console.log('[Auth] No user signed in.')
+        console.log('[Auth] No user session found.')
         setUser(null)
         setProfile(null)
         setLoading(false)
