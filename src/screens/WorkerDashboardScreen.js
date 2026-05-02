@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet, FlatList, TextInput, Alert, Activity
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { subscribeUserLogs, createTimeLog, updateTimeLog, sendSystemMessage, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
+import DateTimePickerModal from "react-native-modal-datetime-picker"
 
 export default function WorkerDashboardScreen({ user, profile, theme = 'light' }) {
   const [logs, setLogs] = useState([])
@@ -10,6 +11,9 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
   const [editTimeIn, setEditTimeIn] = useState('')
   const [editTimeOut, setEditTimeOut] = useState('')
   const [loading, setLoading] = useState(false)
+  
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false)
+  const [pickerMode, setPickerMode] = useState('in') // 'in' or 'out'
   const isDark = theme === 'dark'
   const colors = {
     background: isDark ? '#121212' : '#f8f9fa',
@@ -60,6 +64,20 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
     setEditingId(log.id)
     setEditTimeIn(log.timeIn)
     setEditTimeOut(log.timeOut || '')
+  }
+
+  const showDatePicker = (mode) => {
+    setPickerMode(mode)
+    setDatePickerVisibility(true)
+  }
+
+  const handleConfirm = (date) => {
+    if (pickerMode === 'in') {
+      setEditTimeIn(date.toISOString())
+    } else {
+      setEditTimeOut(date.toISOString())
+    }
+    setDatePickerVisibility(false)
   }
 
   const saveEdit = async () => {
@@ -192,20 +210,28 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
 
             {editingId === item.id ? (
               <View style={[styles.editSection, { backgroundColor: colors.section, borderColor: colors.border }]}> 
-                <TextInput
-                  style={[styles.editInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-                  value={editTimeIn}
-                  onChangeText={setEditTimeIn}
-                  placeholder="In: YYYY-MM-DDTHH:MM:SS"
-                  placeholderTextColor={colors.placeholder}
-                />
-                <TextInput
-                  style={[styles.editInput, { backgroundColor: colors.input, color: colors.text, borderColor: colors.border }]}
-                  value={editTimeOut}
-                  onChangeText={setEditTimeOut}
-                  placeholder="Out: YYYY-MM-DDTHH:MM:SS"
-                  placeholderTextColor={colors.placeholder}
-                />
+                <Pressable 
+                  style={[styles.dateTimeSelector, { backgroundColor: colors.input, borderColor: colors.border }]} 
+                  onPress={() => showDatePicker('in')}
+                >
+                  <MaterialCommunityIcons name="clock-in" size={20} color={colors.secondary} />
+                  <Text style={[styles.dateTimeText, { color: colors.text }]}>
+                    In: {new Date(editTimeIn).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                  </Text>
+                  <MaterialCommunityIcons name="pencil" size={16} color={colors.secondary} />
+                </Pressable>
+
+                <Pressable 
+                  style={[styles.dateTimeSelector, { backgroundColor: colors.input, borderColor: colors.border }]} 
+                  onPress={() => showDatePicker('out')}
+                >
+                  <MaterialCommunityIcons name="clock-out" size={20} color={colors.secondary} />
+                  <Text style={[styles.dateTimeText, { color: colors.text }]}>
+                    Out: {editTimeOut ? new Date(editTimeOut).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : '---'}
+                  </Text>
+                  <MaterialCommunityIcons name="pencil" size={16} color={colors.secondary} />
+                </Pressable>
+
                 <View style={styles.editActions}>
                   <Pressable style={[styles.editBtn, styles.saveBtn]} onPress={saveEdit}>
                     <Text style={styles.editBtnText}>Save</Text>
@@ -234,6 +260,14 @@ export default function WorkerDashboardScreen({ user, profile, theme = 'light' }
           </View>
         }
         contentContainerStyle={styles.listContent}
+      />
+      <DateTimePickerModal
+        isVisible={isDatePickerVisible}
+        mode="datetime"
+        date={pickerMode === 'in' ? (editTimeIn ? new Date(editTimeIn) : new Date()) : (editTimeOut ? new Date(editTimeOut) : new Date())}
+        onConfirm={handleConfirm}
+        onCancel={() => setDatePickerVisibility(false)}
+        isDarkModeEnabled={isDark}
       />
     </SafeAreaView>
   )
@@ -479,13 +513,20 @@ const styles = StyleSheet.create({
     borderTopColor: '#eee',
     paddingTop: 15,
   },
-  editInput: {
+  dateTimeSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#eee',
-    borderRadius: 8,
-    padding: 10,
+    borderRadius: 12,
+    padding: 12,
     marginBottom: 10,
+  },
+  dateTimeText: {
+    flex: 1,
     fontSize: 14,
+    fontWeight: '600',
+    marginHorizontal: 10,
   },
   editActions: {
     flexDirection: 'row',
