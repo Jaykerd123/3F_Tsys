@@ -206,6 +206,12 @@ export async function sendMessage(userId, userName, text, imageUrl = null) {
   return addDoc(messagesCol, payload)
 }
 
+export async function clearAllMessages() {
+  const snapshot = await getDocs(messagesCol)
+  const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref))
+  return Promise.all(deletePromises)
+}
+
 export async function sendSystemMessage(userName, text) {
   return addDoc(messagesCol, {
     userName,

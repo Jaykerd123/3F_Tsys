@@ -4,17 +4,31 @@
     "slug": "employee-time-tracker",
     "version": "1.0.0",
     "orientation": "portrait",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "sdkVersion": "54.0.0",
     "updates": {
       "fallbackToCacheTimeout": 0
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "package": "com.example.employeetracker"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0d9ac16f-38c1-4787-b509-198ce5abf8e3"
+      }
+    },
+    "plugins": [
+      "@react-native-community/datetimepicker"
+    ]
   }
 }

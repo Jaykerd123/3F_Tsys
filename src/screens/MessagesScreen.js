@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { View, Text, TextInput, Pressable, FlatList, StyleSheet, Alert, KeyboardAvoidingView, Platform, Keyboard, Modal, Image, ActivityIndicator } from 'react-native'
 import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { subscribeMessages, sendMessage, subscribeUsers } from '../../services/firebase'
+import { subscribeMessages, sendMessage, subscribeUsers, clearAllMessages } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function MessagesScreen({ user, profile, theme = 'light', navigation }) {
@@ -87,6 +87,27 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
     }
   }
 
+  const handleClearMessages = () => {
+    Alert.alert(
+      "Clear All Messages",
+      "Are you sure you want to delete the entire chat history for everyone? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Clear All", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await clearAllMessages()
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear messages: ' + error.message)
+            }
+          } 
+        }
+      ]
+    )
+  }
+
   const renderMessage = ({ item }) => {
     const isMe = item.userId === user.uid
     const isSystem = item.system
@@ -146,7 +167,17 @@ export default function MessagesScreen({ user, profile, theme = 'light', navigat
       >
         <View style={{ flex: 1 }}>
           <View style={[styles.header, { backgroundColor: colors.header, borderBottomColor: colors.border }]}> 
-            <Text style={[styles.title, { color: colors.text }]}>3F Chat</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <Text style={[styles.title, { color: colors.text }]}>3F Chat</Text>
+              {profile.role === 'admin' && (
+                <Pressable 
+                  style={{ marginLeft: 10, padding: 4 }} 
+                  onPress={handleClearMessages}
+                >
+                  <MaterialCommunityIcons name="delete-sweep" size={24} color="#FF3B30" />
+                </Pressable>
+              )}
+            </View>
             <Pressable style={[styles.membersButton, { backgroundColor: isDark ? '#0f3a6f' : '#E8F2FF' }]} onPress={() => navigation.navigate('Members')}> 
               <MaterialCommunityIcons name="account-group" size={18} color={isDark ? '#D6E7FF' : '#007AFF'} />
               <Text style={[styles.membersButtonText, { color: isDark ? '#D6E7FF' : '#007AFF' }]}>Members</Text>
