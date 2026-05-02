@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { View, Text, StyleSheet, FlatList, SectionList, ActivityIndicator, Pressable, Modal, Image } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { subscribeAllLogs, subscribeUsers } from '../../services/firebase'
+import { subscribeAllLogs, subscribeUsers, clearAllUserProfiles } from '../../services/firebase'
+import { Alert } from 'react-native'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
 
 export default function AdminDashboardScreen({ theme = 'light', profile }) {
@@ -68,6 +69,28 @@ export default function AdminDashboardScreen({ theme = 'light', profile }) {
 
   const activeWorkersCount = Object.keys(activeLogsMap).length
 
+  const handleClearUsers = () => {
+    Alert.alert(
+      "Clear All Users",
+      "Are you sure you want to delete all user profiles from the database? (Note: This doesn't delete their Auth accounts, only their profiles in the member list).",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Clear All", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              await clearAllUserProfiles()
+              Alert.alert('Success', 'All user profiles have been cleared.')
+            } catch (error) {
+              Alert.alert('Error', 'Failed to clear users: ' + error.message)
+            }
+          } 
+        }
+      ]
+    )
+  }
+
   const totalPages = Math.ceil(logs.length / logsPerPage)
   const paginatedLogs = useMemo(() => {
     const start = (currentPage - 1) * logsPerPage
@@ -129,6 +152,14 @@ export default function AdminDashboardScreen({ theme = 'light', profile }) {
         <Text style={styles.statsCount}>{activeWorkersCount}</Text>
         <Text style={styles.statsLabel}>Active Now</Text>
       </View>
+      {profile?.role === 'admin' && (
+        <Pressable 
+          style={[styles.clearBtn, { backgroundColor: isDark ? '#3d1c1c' : '#FFEBEB' }]} 
+          onPress={handleClearUsers}
+        >
+          <MaterialCommunityIcons name="account-remove" size={20} color="#FF3B30" />
+        </Pressable>
+      )}
     </View>
   )
 
@@ -415,6 +446,19 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     textTransform: 'uppercase',
+  },
+  clearBtn: {
+    marginLeft: 12,
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   logCard: {
     backgroundColor: '#fff',

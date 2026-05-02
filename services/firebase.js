@@ -192,6 +192,12 @@ export async function fetchUsers() {
   }
 }
 
+export async function clearAllUserProfiles() {
+  const snapshot = await getDocs(usersCol)
+  const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref))
+  return Promise.all(deletePromises)
+}
+
 export async function sendMessage(userId, userName, text, imageUrl = null) {
   const payload = {
     userId,
