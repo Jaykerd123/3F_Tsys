@@ -6,7 +6,9 @@ import {
   signInWithEmailAndPassword,
   signOut,
   initializeAuth,
-  getReactNativePersistence
+  getReactNativePersistence,
+  browserLocalPersistence,
+  setPersistence
 } from 'firebase/auth'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
@@ -39,15 +41,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig)
 
-// Fix for "auth/already-initialized" error
-let auth;
-try {
-  auth = getAuth(app);
-} catch (e) {
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage)
-  });
-}
+// Guarantee Auth Persistence
+const auth = initializeAuth(app, {
+  persistence: Platform.OS === 'web' 
+    ? browserLocalPersistence 
+    : getReactNativePersistence(AsyncStorage)
+});
+
+export { auth };
 
 // Fix for Expo "Offline" issue: Force long-polling and disable fetch streams
 const db = initializeFirestore(app, {

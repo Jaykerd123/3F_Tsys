@@ -12,7 +12,8 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
-      }
+      },
+      "output": "3FTSYS.apk"
     },
     "production": {
       "autoIncrement": true

@@ -191,14 +191,15 @@ export default function App() {
       if (!isSubscribed) return;
 
       if (authUser) {
-        console.log(`[Auth] User detected: ${authUser.email} (UID: ${authUser.uid})`)
+        console.log(`[Auth] Session FOUND: ${authUser.email}`)
         setUser(authUser)
 
-        // Try to load profile from cache first to avoid waiting
+        // JUMP to dashboard if profile is cached
         const cachedProfile = await AsyncStorage.getItem(`profile_${authUser.uid}`)
         if (cachedProfile) {
+          console.log('[Auth] Profile CACHED, finishing load.')
           setProfile(JSON.parse(cachedProfile))
-          setLoading(false) // Stop loading immediately if cache exists
+          setLoading(false) 
         }
 
         try {
@@ -208,12 +209,12 @@ export default function App() {
             await AsyncStorage.setItem(`profile_${authUser.uid}`, JSON.stringify(profileDoc))
           }
         } catch (e) {
-          console.warn('[Profile] Fetch failed:', e.message)
+          console.warn('[Profile] Background refresh failed:', e.message)
         } finally {
           setLoading(false)
         }
       } else {
-        console.log('[Auth] No user session found.')
+        console.log('[Auth] Session NOT found.')
         setUser(null)
         setProfile(null)
         setLoading(false)
