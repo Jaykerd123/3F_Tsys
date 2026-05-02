@@ -184,7 +184,11 @@ export default function App() {
 
   useEffect(() => {
     console.log('[Auth] Starting Auth listener...')
+    let isSubscribed = true;
+
     const unsubscribe = onAuthStateChanged(async authUser => {
+      if (!isSubscribed) return;
+
       if (authUser) {
         console.log(`[Auth] User detected: ${authUser.email} (UID: ${authUser.uid})`)
         setUser(authUser)
@@ -195,8 +199,6 @@ export default function App() {
           console.log('[Profile] Found cached profile, setting UI...')
           setProfile(JSON.parse(cachedProfile))
           setLoading(false)
-        } else {
-          console.log('[Profile] No cached profile found.')
         }
 
         try {
@@ -206,13 +208,13 @@ export default function App() {
             console.log(`[Profile] Fetch successful! Role: ${profileDoc.role}`)
             setProfile(profileDoc)
             await AsyncStorage.setItem(`profile_${authUser.uid}`, JSON.stringify(profileDoc))
-          } else {
+          } else if (!cachedProfile) {
             console.warn('[Profile] Profile document does not exist in Firestore.')
             setProfile({ name: authUser.email, role: 'worker' })
           }
         } catch (e) {
           console.error('[Profile] Fetch error:', e.message)
-          if (!profile) {
+          if (!profile && !cachedProfile) {
             console.log('[Profile] No cache and fetch failed. Defaulting to worker view to avoid stuck screen.')
             setProfile({ name: authUser.email, role: 'worker' })
           }
@@ -227,7 +229,10 @@ export default function App() {
       }
     })
 
-    return unsubscribe
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
   }, [])
 
   if (loading) {
