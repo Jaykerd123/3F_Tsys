@@ -237,12 +237,20 @@ export async function sendSystemMessage(userName, text) {
 }
 
 export async function fetchTimeLogsByRange(startDate, endDate) {
-  const start = Timestamp.fromDate(new Date(`${startDate}T00:00:00`))
-  const end = Timestamp.fromDate(new Date(`${endDate}T23:59:59`))
+  // Query logs by their `timeIn` value so edits to a log's time are reflected
+  // Note: timeIn in this project is stored as an ISO string (e.g. 2023-05-01T12:34:00.000Z).
+  // Build full ISO bounds (with timezone Z) so string comparisons match the stored format.
+  const s = new Date(startDate)
+  s.setHours(0, 0, 0, 0)
+  const e = new Date(endDate)
+  e.setHours(23, 59, 59, 999)
+  const startISO = s.toISOString()
+  const endISO = e.toISOString()
+
   const logsQuery = query(
     logsCol,
-    where('createdAt', '>=', start),
-    where('createdAt', '<=', end)
+    where('timeIn', '>=', startISO),
+    where('timeIn', '<=', endISO)
   )
   const snapshot = await getDocs(logsQuery)
   const docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
