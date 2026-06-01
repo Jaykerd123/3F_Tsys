@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { logout, updateUserProfile, subscribeUserLogs, deleteTimeLog } from '../../services/firebase'
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons'
+import DateTimePickerModal from "react-native-modal-datetime-picker"
 
 export default function ProfileScreen({ user, profile, theme = 'light', onThemeChange, onProfileUpdate }) {
   const [name, setName] = useState(profile?.name || '')
@@ -12,6 +13,13 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
   const [loading, setLoading] = useState(false)
   const [darkMode, setDarkMode] = useState(theme === 'dark')
   const [isHistoryModalVisible, setHistoryModalVisible] = useState(false)
+  const [startDate, setStartDate] = useState(new Date())
+  const [endDate, setEndDate] = useState(new Date())
+  const [isStartPickerVisible, setStartPickerVisibility] = useState(false)
+  const [isEndPickerVisible, setEndPickerVisibility] = useState(false)
+  const [filteredLogs, setFilteredLogs] = useState([])
+  const [totalHours, setTotalHours] = useState(0)
+  const [isDetailsModalVisible, setDetailsModalVisible] = useState(false)
 
   useEffect(() => {
     setName(profile?.name || '')
@@ -140,6 +148,39 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
     </View>
   )
 
+  const handleConfirmStart = (date) => {
+    setStartDate(date)
+    setStartPickerVisibility(false)
+  }
+
+  const handleConfirmEnd = (date) => {
+    setEndDate(date)
+    setEndPickerVisibility(false)
+  }
+
+  const applyFilter = () => {
+    const start = new Date(startDate)
+    start.setHours(0,0,0,0)
+    const end = new Date(endDate)
+    end.setHours(23,59,59,999)
+
+    const matched = logs.filter(log => {
+      if (!log.timeOut) return false
+      const t = new Date(log.timeIn)
+      return t >= start && t <= end
+    })
+
+    let total = 0
+    matched.forEach(log => {
+      const inT = new Date(log.timeIn)
+      const outT = new Date(log.timeOut)
+      total += Math.max(0, (outT - inT) / 3600000)
+    })
+
+    setFilteredLogs(matched)
+    setTotalHours(Number(total.toFixed(2)))
+  }
+
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}> 
       <ScrollView contentContainerStyle={styles.listContent}>
@@ -229,40 +270,150 @@ export default function ProfileScreen({ user, profile, theme = 'light', onThemeC
             <View style={{ width: 40 }} />
           </View>
           
+          <ScrollView contentContainerStyle={styles.listContent}>
+            <Text style={[styles.inputLabel, { color: colors.secondary }]}>Filter By Date</Text>
+            <View style={styles.dateRow}>
+              <Pressable style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setStartPickerVisibility(true)}>
+                <MaterialCommunityIcons name="calendar-import" size={20} color="#007AFF" />
+                <View style={styles.dateTextWrapper}>
+                  <Text style={[styles.dateLabel, { color: colors.secondary }]}>From</Text>
+                  <Text style={[styles.dateValue, { color: colors.text }]}>{startDate.toLocaleDateString()}</Text>
+                </View>
+              </Pressable>
+
+              <Pressable style={[styles.dateInput, { backgroundColor: colors.card, borderColor: colors.border }]} onPress={() => setEndPickerVisibility(true)}>
+                <MaterialCommunityIcons name="calendar-export" size={20} color="#FF3B30" />
+                <View style={styles.dateTextWrapper}>
+                  <Text style={[styles.dateLabel, { color: colors.secondary }]}>To</Text>
+                  <Text style={[styles.dateValue, { color: colors.text }]}>{endDate.toLocaleDateString()}</Text>
+                </View>
+              </Pressable>
+            </View>
+
+            <Pressable style={styles.calcBtn} onPress={applyFilter}>
+              <Text style={styles.calcBtnText}>Apply Filter</Text>
+            </Pressable>
+
+            <View style={[styles.resultCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <View style={styles.resultRow}>
+                <Text style={[styles.resultLabel, { color: colors.secondary }]}>Total Hours</Text>
+                <Text style={[styles.resultValue, { color: colors.text }]}>{totalHours}h</Text>
+              </View>
+              <View style={styles.resultDivider} />
+              <Pressable style={styles.detailsBtn} onPress={() => setDetailsModalVisible(true)}>
+                <MaterialCommunityIcons name="format-list-bulleted" size={20} color="#007AFF" />
+                <Text style={styles.detailsBtnText}>Show Filtered Logs</Text>
+              </Pressable>
+            </View>
+
+            <View style={{ height: 24 }} />
+
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>All Sessions</Text>
+            <FlatList
+              data={logs}
+              keyExtractor={item => item.id}
+              contentContainerStyle={{ paddingBottom: 80 }}
+              renderItem={({ item }) => (
+                <View style={[styles.logItem, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                  <View style={[styles.logIcon, { backgroundColor: isDark ? '#163222' : '#F0FFF4' }]}> 
+                    <MaterialCommunityIcons name="clock-check-outline" size={20} color="#4CD964" />
+                  </View>
+                  <View style={styles.logInfo}>
+                    <Text style={[styles.logDate, { color: colors.text }]}> 
+                      {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    </Text>
+                    <Text style={[styles.logTime, { color: colors.secondary }]}> 
+                      {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {' - '}
+                      {item.timeOut 
+                        ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : 'Active'}
+                    </Text>
+                  </View>
+                  <Pressable style={styles.deleteBtn} onPress={() => handleDeleteLog(item.id)}>
+                    <MaterialCommunityIcons name="close-circle-outline" size={22} color="#FF3B30" />
+                  </Pressable>
+                </View>
+              )}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={[styles.emptyText, { color: colors.secondary }]}>No sessions found.</Text>
+                </View>
+              }
+            />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      <Modal visible={isDetailsModalVisible} animationType="slide">
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+          <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+            <Pressable onPress={() => setDetailsModalVisible(false)} style={styles.closeBtn}>
+              <MaterialCommunityIcons name="arrow-left" size={24} color={colors.text} />
+            </Pressable>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>Filtered Logs</Text>
+            <View style={{ width: 40 }} />
+          </View>
+
           <FlatList
-            data={logs}
+            data={filteredLogs}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <View style={[styles.logItem, { backgroundColor: colors.card, borderColor: colors.border }]}> 
-                <View style={[styles.logIcon, { backgroundColor: isDark ? '#163222' : '#F0FFF4' }]}> 
-                  <MaterialCommunityIcons name="clock-check-outline" size={20} color="#4CD964" />
-                </View>
-                <View style={styles.logInfo}>
-                  <Text style={[styles.logDate, { color: colors.text }]}> 
-                    {new Date(item.timeIn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                  </Text>
-                  <Text style={[styles.logTime, { color: colors.secondary }]}> 
-                    {new Date(item.timeIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    {' - '}
-                    {item.timeOut 
-                      ? new Date(item.timeOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : 'Active'}
-                  </Text>
-                </View>
-                <Pressable style={styles.deleteBtn} onPress={() => handleDeleteLog(item.id)}>
-                  <MaterialCommunityIcons name="close-circle-outline" size={22} color="#FF3B30" />
-                </Pressable>
-              </View>
-            )}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
-                <Text style={[styles.emptyText, { color: colors.secondary }]}>No sessions found.</Text>
+                <Text style={[styles.emptyText, { color: colors.secondary }]}>No filtered sessions.</Text>
               </View>
             }
+            renderItem={({ item }) => {
+              const start = new Date(item.timeIn)
+              const end = item.timeOut ? new Date(item.timeOut) : null
+              const duration = end ? Math.max(0, (end - start) / 3600000).toFixed(2) : 'Active'
+
+              return (
+                <View style={[styles.logItem, { backgroundColor: colors.card, borderColor: colors.border }]}> 
+                  <View style={[styles.logIcon, { backgroundColor: isDark ? '#163222' : '#F0FFF4' }]}> 
+                    <MaterialCommunityIcons name="calendar-range" size={20} color="#4CD964" />
+                  </View>
+                  <View style={styles.logInfo}>
+                    <Text style={[styles.logDate, { color: colors.text }]}>
+                      {start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </Text>
+                    <Text style={[styles.logTime, { color: colors.secondary }]}> 
+                      {start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {' - '}
+                      {end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Active'}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={[styles.resultValue, { color: colors.text }]}>{duration}h</Text>
+                  </View>
+                </View>
+              )
+            }}
           />
         </SafeAreaView>
       </Modal>
+
+      <DateTimePickerModal
+        isVisible={isStartPickerVisible}
+        mode="date"
+        isDarkModeEnabled={isDark}
+        themeVariant={isDark ? "dark" : "light"}
+        onConfirm={handleConfirmStart}
+        onCancel={() => setStartPickerVisibility(false)}
+        date={startDate}
+      />
+
+      <DateTimePickerModal
+        isVisible={isEndPickerVisible}
+        mode="date"
+        isDarkModeEnabled={isDark}
+        themeVariant={isDark ? "dark" : "light"}
+        onConfirm={handleConfirmEnd}
+        onCancel={() => setEndPickerVisibility(false)}
+        date={endDate}
+      />
+
     </SafeAreaView>
   )
 }
@@ -520,6 +671,100 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#999',
     fontSize: 14,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#666',
+    marginBottom: 12,
+    textTransform: 'uppercase',
+  },
+  dateRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  dateInput: {
+    flex: 0.48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  dateTextWrapper: {
+    marginLeft: 10,
+  },
+  dateLabel: {
+    fontSize: 10,
+    color: '#999',
+    fontWeight: '600',
+  },
+  dateValue: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  calcBtn: {
+    backgroundColor: '#007AFF',
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  calcBtnText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  resultCard: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    marginBottom: 12,
+  },
+  resultRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  resultLabel: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  resultValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1a1a1a',
+  },
+  resultDivider: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+    marginVertical: 8,
+  },
+  detailsBtn: {
+    marginTop: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(0,122,255,0.2)',
+  },
+  detailsBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#007AFF',
+    marginLeft: 8,
   },
   historyButton: {
     flexDirection: 'row',

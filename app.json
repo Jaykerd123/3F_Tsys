@@ -17,6 +17,9 @@
       "web"
     ],
     "sdkVersion": "54.0.0",
+    "runtimeVersion": {
+      "policy": "sdkVersion"
+    },
     "updates": {
       "fallbackToCacheTimeout": 0
     },
